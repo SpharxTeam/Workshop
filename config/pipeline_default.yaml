@@ -1,98 +1,59 @@
-# 流水线默认配置
+# Spharx 数据生产线默认配置
+version: "1.0"
 
-pipeline:
-  # 流水线基本信息
-  name: "spharx_default_pipeline"
-  version: "1.0.0"
-  description: "Spharx标准数据处理流水线"
+# 输入输出设置
+io:
+  image_extensions: [".jpg", ".jpeg", ".png", ".bmp"]
+  default_image_size: 1920  # 长边缩放尺寸
   
-  # 执行设置
-  max_workers: 4
-  timeout_per_stage: 3600  # 秒
-  retry_attempts: 3
-  continue_on_error: false
+# 2D标注阶段配置
+2d_annotation:
+  enabled: true
+  sam_model: "vit_h"  # vit_b, vit_l, vit_h
+  sam_score_threshold: 0.7
+  auto_approve_threshold: 0.85  # 高于此分数自动通过
   
-  # 阶段定义
-  stages:
-    - id: "00_input_validation"
-      name: "输入数据验证"
-      module: "src.pipeline.stages.00_input_validation"
-      enabled: true
-      required: true
-      parameters:
-        min_images: 10
-        supported_formats: [".jpg", ".png", ".jpeg"]
-        
-    - id: "01_2d_annotation"
-      name: "2D自动标注"
-      module: "src.pipeline.stages.01_2d_annotation"
-      enabled: true
-      required: true
-      parameters:
-        model_type: "sam_hq_vit_l"
-        confidence_threshold: 0.8
-        batch_size: 8
-        
-    - id: "02_2d_product_assembly"
-      name: "2D产品打包"
-      module: "src.pipeline.stages.02_2d_product_assembly"
-      enabled: true
-      required: true
-      parameters:
-        output_format: "coco"
-        include_masks: true
-        validation_enabled: true
-        
-    - id: "03_3d_reconstruction"
-      name: "3D几何重建"
-      module: "src.pipeline.stages.03_3d_reconstruction"
-      enabled: false  # 默认禁用，按需启用
-      required: false
-      parameters:
-        colmap_preset: "indoor"
-        gpu_enabled: true
-        quality: "high"
-        
-    - id: "04_2d_to_3d_lift"
-      name: "2D到3D标签提升"
-      module: "src.pipeline.stages.04_2d_to_3d_lift"
-      enabled: false  # 依赖3D重建
-      required: false
-      parameters:
-        lifting_algorithm: "sa3d"
-        confidence_filter: 0.7
-        
-    - id: "05_physics_generation"
-      name: "物理属性生成"
-      module: "src.pipeline.stages.05_physics_generation"
-      enabled: false  # 高级功能
-      required: false
-      parameters:
-        physics_engine: "blender"
-        material_preset: "realistic"
-        
-    - id: "06_3d_product_assembly"
-      name: "3D产品打包"
-      module: "src.pipeline.stages.06_3d_product_assembly"
-      enabled: false  # 依赖前面阶段
-      required: false
-      parameters:
-        include_textures: true
-        compression_level: "medium"
-        
-    - id: "99_output_export"
-      name: "输出导出"
-      module: "src.pipeline.stages.99_output_export"
-      enabled: true
-      required: true
-      parameters:
-        export_local: true
-        upload_to_oss: false
-        cleanup_temp: true
+  # 输出格式
+  export_formats:
+    - coco
+    - yolo
+    - pascal_voc
+    
+  quality_control:
+    min_annotation_area: 100  # 像素
+    require_boundary_check: true
 
-# 全局参数
-global:
-  temp_dir: "/tmp/spharx"
-  log_level: "INFO"
-  enable_monitoring: true
-  checkpoint_interval: 300  # 秒
+# 3D重建阶段配置
+3d_reconstruction:
+  enabled: false  # 初始关闭
+  colmap:
+    quality: "high"  # low, medium, high, extreme
+    use_gpu: true
+    max_image_size: 2000
+    
+  # 不同场景的预设参数
+  presets:
+    indoor:
+      matcher_method: "exhaustive"
+      ba_refine_focal_length: true
+    outdoor:
+      matcher_method: "sequential"
+      ba_refine_focal_length: false
+
+# 2D到3D标签提升配置
+2d_to_3d_lift:
+  enabled: false
+  method: "sa3d"  # sa3d, simple_projection
+  sa3d:
+    iterations: 1000
+    learning_rate: 0.01
+
+# 物理事实生成配置
+physics_generation:
+  enabled: false
+  blender:
+    simulation_steps: 100
+    gravity: 9.81
+    default_material:
+      friction: 0.5
+      restitution: 0.3

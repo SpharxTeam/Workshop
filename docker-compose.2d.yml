@@ -1,87 +1,56 @@
 version: '3.8'
-
-# 最小2D生产栈：仅包含必要的2D标注服务
-# 适用于快速启动和小规模生产环境
-
 services:
-  # ========== 最简基础设施 ==========
-  
-  redis:
-    image: redis:7-alpine
-    container_name: spharx-redis-2d
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: spharx-postgres-2d
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: cvat
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: ${CVAT_ADMIN_PASSWORD}
-    volumes:
-      - postgres_data_2d:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # ========== 2D核心服务 ==========
-  
+  # CVAT标注平台 (提供UI和API)
   cvat:
-    image: cvat/server:${IMAGE_TAG}
-    container_name: spharx-cvat-2d
-    depends_on:
-      - postgres
-      - redis
+    image: cvat/server:latest
+    container_name: ${PROJECT_PREFIX}_cvat
     ports:
-      - "${CVAT_PORT}:8080"
+      - "8080:8080"
     environment:
-      CVAT_REDIS_HOST: redis
-      CVAT_POSTGRES_HOST: postgres
-      CVAT_ROOT_USER: ${CVAT_ADMIN_USERNAME}
-      CVAT_ROOT_PASSWORD: ${CVAT_ADMIN_PASSWORD}
-      CVAT_ROOT_EMAIL: ${CVAT_ADMIN_EMAIL}
-      # 禁用不必要的功能以节省资源
-      CVAT_SHARE_STORAGE: "0"
+      CVAT_HOST: ${CVAT_HOST}
     volumes:
-      - cvat_data_2d:/home/django/data
-      - cvat_keys_2d:/home/django/keys
-      - ${DATA_ROOT}:/data:ro
-    restart: unless-stopped
+      - cvat_data:/home/django/data
+      - cvat_keys:/home/django/keys
+      - cvat_logs:/home/django/logs
+    networks:
+      - ${DOCKER_NETWORK}
 
-  cvat-ui:
-    image: cvat/ui:${IMAGE_TAG}
-    container_name: spharx-cvat-ui-2d
+  # SAM自动标注模型服务 (辅助CVAT)
+  sam_auto_labeler:
+    build:
+      context: ./docker
+      dockerfile: sam.Dockerfile
+    container_name: ${PROJECT_PREFIX}_sam
+    # 通过CVAT的webhook或API调用
+    networks:
+      - ${DOCKER_NETWORK}
+
+  # 生产线主控制器
+  workshop_controller:
+    build:
+      context: .
+      dockerfile: docker/base.Dockerfile
+    container_name: ${PROJECT_PREFIX}_controller
+    volumes:
+      # 挂载数据卷和代码
+      - ${INPUT_SCENES_DIR}:${INPUT_SCENES_DIR}:ro
+      - ${OUTPUT_DATASETS_DIR}:${OUTPUT_DATASETS_DIR}
+      - ${WORKSPACE_DIR}:${WORKSPACE_DIR}
+      - ./src:/app/src  # 开发时源码热加载
+    environment:
+      - ENV_FILE=/app/.env
     depends_on:
       - cvat
-    ports:
-      - "8081:80"
-    restart: unless-stopped
-
-  # ========== 轻量级MinIO（可选）==========
-  
-  minio:
-    image: minio/minio:RELEASE.2023-12-07T04-16-00Z
-    container_name: spharx-minio-2d
-    ports:
-      - "${MINIO_PORT}:9000"
-      - "${MINIO_CONSOLE_PORT}:9001"
-    environment:
-      MINIO_ROOT_USER: ${OSS_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${OSS_SECRET_ACCESS_KEY}
-    volumes:
-      - minio_data_2d:/data
-    command: server /data --console-address ":9001"
-    restart: unless-stopped
-
-volumes:
-  postgres_data_2d:
-  cvat_data_2d:
-  cvat_keys_2d:
-  minio_data_2d:
+    command: ["python", "-m", "src.main", "--mode", "2d-only"]
+    networks:
+      - ${DOCKER_NETWORK}
 
 networks:
   default:
-    name: spharx-network-2d
+    name: ${DOCKER_NETWORK}
+    external: true  # 需先创建
+
+volumes:
+  cvat_data:
+  cvat_keys:
+  cvat_logs:
