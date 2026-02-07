@@ -1,0 +1,98 @@
+# 流水线默认配置
+
+pipeline:
+  # 流水线基本信息
+  name: "spharx_default_pipeline"
+  version: "1.0.0"
+  description: "Spharx标准数据处理流水线"
+  
+  # 执行设置
+  max_workers: 4
+  timeout_per_stage: 3600  # 秒
+  retry_attempts: 3
+  continue_on_error: false
+  
+  # 阶段定义
+  stages:
+    - id: "00_input_validation"
+      name: "输入数据验证"
+      module: "src.pipeline.stages.00_input_validation"
+      enabled: true
+      required: true
+      parameters:
+        min_images: 10
+        supported_formats: [".jpg", ".png", ".jpeg"]
+        
+    - id: "01_2d_annotation"
+      name: "2D自动标注"
+      module: "src.pipeline.stages.01_2d_annotation"
+      enabled: true
+      required: true
+      parameters:
+        model_type: "sam_hq_vit_l"
+        confidence_threshold: 0.8
+        batch_size: 8
+        
+    - id: "02_2d_product_assembly"
+      name: "2D产品打包"
+      module: "src.pipeline.stages.02_2d_product_assembly"
+      enabled: true
+      required: true
+      parameters:
+        output_format: "coco"
+        include_masks: true
+        validation_enabled: true
+        
+    - id: "03_3d_reconstruction"
+      name: "3D几何重建"
+      module: "src.pipeline.stages.03_3d_reconstruction"
+      enabled: false  # 默认禁用，按需启用
+      required: false
+      parameters:
+        colmap_preset: "indoor"
+        gpu_enabled: true
+        quality: "high"
+        
+    - id: "04_2d_to_3d_lift"
+      name: "2D到3D标签提升"
+      module: "src.pipeline.stages.04_2d_to_3d_lift"
+      enabled: false  # 依赖3D重建
+      required: false
+      parameters:
+        lifting_algorithm: "sa3d"
+        confidence_filter: 0.7
+        
+    - id: "05_physics_generation"
+      name: "物理属性生成"
+      module: "src.pipeline.stages.05_physics_generation"
+      enabled: false  # 高级功能
+      required: false
+      parameters:
+        physics_engine: "blender"
+        material_preset: "realistic"
+        
+    - id: "06_3d_product_assembly"
+      name: "3D产品打包"
+      module: "src.pipeline.stages.06_3d_product_assembly"
+      enabled: false  # 依赖前面阶段
+      required: false
+      parameters:
+        include_textures: true
+        compression_level: "medium"
+        
+    - id: "99_output_export"
+      name: "输出导出"
+      module: "src.pipeline.stages.99_output_export"
+      enabled: true
+      required: true
+      parameters:
+        export_local: true
+        upload_to_oss: false
+        cleanup_temp: true
+
+# 全局参数
+global:
+  temp_dir: "/tmp/spharx"
+  log_level: "INFO"
+  enable_monitoring: true
+  checkpoint_interval: 300  # 秒
