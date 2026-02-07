@@ -1,0 +1,6 @@
+# CVAT自定义插件依赖
+opencv-python>=4.5.0
+scipy>=1.7.0
+scikit-learn>=1.0.0
+requests>=2.25.0
+pillow>=8.0.0
