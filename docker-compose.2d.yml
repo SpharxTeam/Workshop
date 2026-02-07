@@ -1,0 +1,87 @@
+version: '3.8'
+
+# 最小2D生产栈：仅包含必要的2D标注服务
+# 适用于快速启动和小规模生产环境
+
+services:
+  # ========== 最简基础设施 ==========
+  
+  redis:
+    image: redis:7-alpine
+    container_name: spharx-redis-2d
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: spharx-postgres-2d
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: cvat
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ${CVAT_ADMIN_PASSWORD}
+    volumes:
+      - postgres_data_2d:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # ========== 2D核心服务 ==========
+  
+  cvat:
+    image: cvat/server:${IMAGE_TAG}
+    container_name: spharx-cvat-2d
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "${CVAT_PORT}:8080"
+    environment:
+      CVAT_REDIS_HOST: redis
+      CVAT_POSTGRES_HOST: postgres
+      CVAT_ROOT_USER: ${CVAT_ADMIN_USERNAME}
+      CVAT_ROOT_PASSWORD: ${CVAT_ADMIN_PASSWORD}
+      CVAT_ROOT_EMAIL: ${CVAT_ADMIN_EMAIL}
+      # 禁用不必要的功能以节省资源
+      CVAT_SHARE_STORAGE: "0"
+    volumes:
+      - cvat_data_2d:/home/django/data
+      - cvat_keys_2d:/home/django/keys
+      - ${DATA_ROOT}:/data:ro
+    restart: unless-stopped
+
+  cvat-ui:
+    image: cvat/ui:${IMAGE_TAG}
+    container_name: spharx-cvat-ui-2d
+    depends_on:
+      - cvat
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+  # ========== 轻量级MinIO（可选）==========
+  
+  minio:
+    image: minio/minio:RELEASE.2023-12-07T04-16-00Z
+    container_name: spharx-minio-2d
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    environment:
+      MINIO_ROOT_USER: ${OSS_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${OSS_SECRET_ACCESS_KEY}
+    volumes:
+      - minio_data_2d:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+volumes:
+  postgres_data_2d:
+  cvat_data_2d:
+  cvat_keys_2d:
+  minio_data_2d:
+
+networks:
+  default:
+    name: spharx-network-2d

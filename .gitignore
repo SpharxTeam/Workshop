@@ -1,0 +1,95 @@
+# ================================
+# SPHARX TOOLCHAIN .gitignore
+# 严格保护敏感数据和大文件
+# ================================
+
+# ========== 环境配置文件 ==========
+.env
+.env.local
+.env.*.local
+
+# ========== 敏感数据 ==========
+config/secrets/
+**/*.key
+**/*.pem
+**/*.crt
+**/credentials.json
+
+# ========== 数据文件（绝不提交）==========
+/data/
+/workspace/
+/output/
+**/datasets/
+**/models/
+**/*.bin
+**/*.pt
+**/*.pth
+**/*.onnx
+**/*.ckpt
+
+# ========== 日志文件 ==========
+logs/
+*.log
+*.log.*
+!docs/**/*.log  # 文档中的示例日志除外
+
+# ========== 临时文件 ==========
+tmp/
+temp/
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# ========== Python缓存 ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ========== IDE配置 ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ========== Docker构建产物 ==========
+docker-images/
+*.tar.gz
+*.tar
+
+# ========== 测试生成数据 ==========
+tests/output/
+tests/tmp/
+
+# ========== 系统文件 ==========
+.System Volume Information/
+desktop.ini
+
+# ========== 备份文件 ==========
+*.bak
+*.backup
+*.old
+
+# ========== 大文件（>100MB）==========
+*.zip
+*.rar
+*.7z
+**/large_files/

@@ -1,0 +1,169 @@
+version: '3.8'
+
+services:
+  # ========== 基础设施服务 ==========
+  
+  minio:
+    image: minio/minio:RELEASE.2023-12-07T04-16-00Z
+    container_name: spharx-minio
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    environment:
+      MINIO_ROOT_USER: ${OSS_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${OSS_SECRET_ACCESS_KEY}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: spharx-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: spharx-postgres
+    ports:
+      - "${CVAT_DB_PORT}:5432"
+    environment:
+      POSTGRES_DB: cvat
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ${CVAT_ADMIN_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # ========== 2D标注服务 ==========
+  
+  cvat:
+    image: cvat/server:${IMAGE_TAG}
+    container_name: spharx-cvat
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "${CVAT_PORT}:8080"
+    environment:
+      CVAT_REDIS_HOST: redis
+      CVAT_POSTGRES_HOST: postgres
+      CVAT_ROOT_USER: ${CVAT_ADMIN_USERNAME}
+      CVAT_ROOT_PASSWORD: ${CVAT_ADMIN_PASSWORD}
+      CVAT_ROOT_EMAIL: ${CVAT_ADMIN_EMAIL}
+    volumes:
+      - cvat_data:/home/django/data
+      - cvat_keys:/home/django/keys
+      - ${DATA_ROOT}:/data:ro  # 只读挂载原始数据
+    restart: unless-stopped
+
+  cvat-ui:
+    image: cvat/ui:${IMAGE_TAG}
+    container_name: spharx-cvat-ui
+    depends_on:
+      - cvat
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+  # ========== 3D重建服务 ==========
+  
+  colmap:
+    build:
+      context: ./docker
+      dockerfile: colmap.Dockerfile
+    container_name: spharx-colmap
+    runtime: nvidia  # 如果启用GPU
+    environment:
+      NVIDIA_VISIBLE_DEVICES: ${COLMAP_GPU_INDEX}
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      - ./config/colmap:/config:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ========== AI服务 ==========
+  
+  sam-auto-labeler:
+    build:
+      context: ./docker
+      dockerfile: sam.Dockerfile
+    container_name: spharx-sam
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_TYPE: ${SAM_MODEL_TYPE}
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  sa3d-lifter:
+    build:
+      context: ./docker
+      dockerfile: sa3d.Dockerfile
+    container_name: spharx-sa3d
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ========== 物理仿真服务 ==========
+  
+  blender-physics:
+    build:
+      context: ./docker
+      dockerfile: blender.Dockerfile
+    container_name: spharx-blender
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      - ${OUTPUT_ROOT}:/output
+
+  # ========== 监控服务 ==========
+  
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: spharx-prometheus
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    restart: unless-stopped
+
+volumes:
+  minio_data:
+  redis_data:
+  postgres_data:
+  cvat_data:
+  cvat_keys:
+  prometheus_data:
+
+networks:
+  default:
+    name: spharx-network
