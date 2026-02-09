@@ -1,0 +1,227 @@
+# 2D标注流水线专用配置
+# 文件路径：toolchain/configs/pipeline_2d.yaml
+
+# 流水线基本信息
+pipeline:
+  name: "2d_annotation_pipeline"
+  version: "1.0.0"
+  description: "2D自动标注流水线配置"
+
+# 预处理阶段
+preprocessing:
+  enabled: true
+  steps:
+    - name: "image_validation"
+      enabled: true
+      parameters:
+        min_width: 480
+        min_height: 480
+        max_file_size_mb: 50
+        allowed_formats: [".jpg", ".jpeg", ".png", ".tiff"]
+    
+    - name: "image_resize"
+      enabled: true
+      parameters:
+        max_size: 1600
+        maintain_aspect_ratio: true
+        interpolation: "LANCZOS"
+    
+    - name: "exif_extraction"
+      enabled: true
+      parameters:
+        extract_camera_info: true
+        extract_gps: true
+        extract_timestamp: true
+    
+    - name: "quality_check"
+      enabled: true
+      parameters:
+        min_sharpness: 100.0
+        min_brightness: 30
+        max_brightness: 220
+        check_blur: true
+
+# SAM模型配置
+sam_annotation:
+  enabled: true
+  model_type: "vit_h"
+  checkpoint_path: "/home/SpharxWorkshop/.cache/models/sam_vit_h_4b8939.pth"
+  
+  # 自动掩码生成参数
+  generation_params:
+    points_per_side: 32
+    points_per_batch: 64
+    pred_iou_thresh: 0.88
+    stability_score_thresh: 0.95
+    stability_score_offset: 1.0
+    box_nms_thresh: 0.7
+    crop_n_layers: 1
+    crop_n_points_downscale_factor: 2
+    min_mask_region_area: 100
+    output_mode: "binary_mask"
+  
+  # 设备配置
+  device: "cuda"  # 或 "cpu"
+  cuda_device: 0  # 使用哪个GPU
+  
+  # 批处理配置
+  batch_size: 4
+  max_workers: 2
+
+# 标注后处理
+postprocessing:
+  enabled: true
+  steps:
+    - name: "filter_low_confidence"
+      enabled: true
+      parameters:
+        min_confidence: 0.5
+        min_area: 100  # 像素
+    
+    - name: "merge_overlapping"
+      enabled: true
+      parameters:
+        iou_threshold: 0.7
+        merge_strategy: "weighted_average"
+    
+    - name: "category_mapping"
+      enabled: true
+      parameters:
+        mapping_file: "configs/2d_annotation/category_mapping.json"
+        default_category: "object"
+
+# COCO格式输出
+coco_output:
+  enabled: true
+  format_version: "1.0"
+  
+  # 类别定义（可以根据实际需求修改）
+  categories:
+    - id: 1
+      name: "person"
+      supercategory: "living"
+    - id: 2
+      name: "vehicle"
+      supercategory: "movable"
+    - id: 3
+      name: "furniture"
+      supercategory: "static"
+    - id: 4
+      name: "electronic"
+      supercategory: "static"
+    - id: 5
+      name: "other"
+      supercategory: "other"
+  
+  # 属性定义
+  attributes:
+    - name: "occlusion"
+      type: "float"
+      range: [0.0, 1.0]
+    - name: "truncation"
+      type: "float"
+      range: [0.0, 1.0]
+    - name: "visibility"
+      type: "string"
+      values: ["fully_visible", "partially_occluded", "heavily_occluded"]
+
+# 可视化输出
+visualization:
+  enabled: true
+  output_dir: "/home/SpharxWorkshop/workspace/visualizations/2d_annotations"
+  
+  # 可视化选项
+  options:
+    show_bbox: true
+    show_segmentation: true
+    show_labels: true
+    show_confidence: true
+    opacity: 0.5
+    colors: "random"  # "random", "category", "fixed"
+  
+  # 输出格式
+  formats:
+    - type: "png"
+      quality: 95
+      dpi: 150
+    - type: "pdf"
+      combine_all: false
+
+# 质量控制
+quality_control:
+  enabled: true
+  metrics:
+    - name: "annotation_coverage"
+      threshold: 0.3
+      weight: 0.4
+    
+    - name: "confidence_score"
+      threshold: 0.7
+      weight: 0.3
+    
+    - name: "edge_quality"
+      threshold: 0.8
+      weight: 0.2
+    
+    - name: "category_consistency"
+      threshold: 0.9
+      weight: 0.1
+  
+  # 自动修正
+  auto_correction:
+    enabled: false
+    max_corrections_per_image: 10
+
+# 性能优化
+performance:
+  use_cache: true
+  cache_dir: "/home/SpharxWorkshop/workspace/cache/2d_annotations"
+  cache_ttl_hours: 24
+  
+  # 并行处理
+  parallel_processing:
+    enabled: true
+    max_workers: 4
+    chunk_size: 10
+  
+  # 内存管理
+  memory:
+    max_image_cache_mb: 1024
+    cleanup_interval: 10  # 清理间隔（处理图像数）
+
+# 日志和监控
+monitoring:
+  log_level: "INFO"
+  save_intermediate_results: false
+  intermediate_dir: "/home/SpharxWorkshop/workspace/intermediate/2d"
+  
+  # 进度报告
+  progress_report:
+    enabled: true
+    interval_images: 10  # 每处理多少张图像报告一次进度
+    
+  # 指标收集
+  metrics_collection:
+    enabled: true
+    export_format: "json"
+    export_path: "/home/SpharxWorkshop/workspace/metrics/2d_annotations"
+
+# 错误处理
+error_handling:
+  max_retries: 3
+  retry_delay_seconds: 5
+  
+  # 跳过条件
+  skip_conditions:
+    - error_type: "MemoryError"
+      action: "skip_image"
+    - error_type: "FileNotFoundError"
+      action: "skip_image"
+    - error_type: "ValueError"
+      action: "retry"
+    
+  # 恢复机制
+  recovery:
+    enabled: true
+    checkpoint_interval: 50  # 每处理多少张图像保存检查点
+    checkpoint_dir: "/home/SpharxWorkshop/workspace/checkpoints/2d"

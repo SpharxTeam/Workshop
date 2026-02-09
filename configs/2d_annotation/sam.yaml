@@ -1,0 +1,23 @@
+# Segment Anything Model 配置
+sam:
+  model_type: "vit_h"  # vit_h, vit_l, vit_b
+  checkpoint_path: "/models/sam_vit_h_4b8939.pth"
+  device: "cuda"  # cuda 或 cpu
+  
+  # 预测参数
+  points_per_side: 32
+  pred_iou_thresh: 0.88
+  stability_score_thresh: 0.95
+  crop_n_layers: 1
+  crop_n_points_downscale_factor: 2
+  min_mask_region_area: 100
+  
+  # 批处理设置
+  batch_size: 4
+  max_image_size: 1024
+  
+  # 输出设置
+  output_mode: "binary_mask"  # binary_mask, unfiltered, coco_json
+  save_visualization: true
+  visualization_dir: "/home/SpharxWorkshop/workspace/visualizations/sam"
+  

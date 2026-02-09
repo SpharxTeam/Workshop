@@ -1,47 +1,23 @@
-# ================================
-# SPHARX TOOLCHAIN .gitignore
-# 严格保护敏感数据和大文件
-# ================================
+# ============================================
+# SpharxWorkshop Git忽略规则
+# ============================================
 
-# ========== 环境配置文件 ==========
+# 环境配置文件（绝对不能提交！）
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
 
-# ========== 敏感数据 ==========
-config/secrets/
-**/*.key
-**/*.pem
-**/*.crt
-**/credentials.json
+# 敏感数据文件
+*.key
+*.pem
+*.crt
+*.p12
+*_credentials.json
+*_config.ini
 
-# ========== 数据文件（绝不提交）==========
-/data/
-/workspace/
-/output/
-**/datasets/
-**/models/
-**/*.bin
-**/*.pt
-**/*.pth
-**/*.onnx
-**/*.ckpt
-
-# ========== 日志文件 ==========
-logs/
-*.log
-*.log.*
-!docs/**/*.log  # 文档中的示例日志除外
-
-# ========== 临时文件 ==========
-tmp/
-temp/
-*.tmp
-*.temp
-.DS_Store
-Thumbs.db
-
-# ========== Python缓存 ==========
+# 运行时生成的文件
 __pycache__/
 *.py[cod]
 *$py.class
@@ -63,33 +39,60 @@ wheels/
 .installed.cfg
 *.egg
 
-# ========== IDE配置 ==========
+# 数据文件和数据集
+data/
+output/
+workspace/
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.npy
+*.npz
+
+# 模型文件
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.onnx
+models/
+checkpoints/
+
+# 日志文件
+*.log
+logs/
+*.logs
+
+# 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 编辑器文件
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# ========== Docker构建产物 ==========
-docker-images/
-*.tar.gz
-*.tar
+# Docker相关
+.dockerignore
+docker-compose.override.yml
 
-# ========== 测试生成数据 ==========
-tests/output/
-tests/tmp/
+# 测试相关
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
 
-# ========== 系统文件 ==========
-.System Volume Information/
-desktop.ini
+# Jupyter笔记本
+.ipynb_checkpoints/
 
-# ========== 备份文件 ==========
-*.bak
-*.backup
-*.old
-
-# ========== 大文件（>100MB）==========
-*.zip
-*.rar
-*.7z
-**/large_files/
+# 临时文件
+temp/
+tmp/

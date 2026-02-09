@@ -1,169 +1,264 @@
 version: '3.8'
 
-services:
-  # ========== 基础设施服务 ==========
-  
-  minio:
-    image: minio/minio:RELEASE.2023-12-07T04-16-00Z
-    container_name: spharx-minio
-    ports:
-      - "${MINIO_PORT}:9000"
-      - "${MINIO_CONSOLE_PORT}:9001"
-    environment:
-      MINIO_ROOT_USER: ${OSS_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${OSS_SECRET_ACCESS_KEY}
-    volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
-    restart: unless-stopped
+# ============================================
+# SpharxWorkshop 核心服务编排
+# 描述：定义所有Docker服务及其依赖关系
+# ============================================
 
-  redis:
-    image: redis:7-alpine
-    container_name: spharx-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: spharx-postgres
-    ports:
-      - "${CVAT_DB_PORT}:5432"
-    environment:
-      POSTGRES_DB: cvat
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: ${CVAT_ADMIN_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # ========== 2D标注服务 ==========
-  
-  cvat:
-    image: cvat/server:${IMAGE_TAG}
-    container_name: spharx-cvat
-    depends_on:
-      - postgres
-      - redis
-    ports:
-      - "${CVAT_PORT}:8080"
-    environment:
-      CVAT_REDIS_HOST: redis
-      CVAT_POSTGRES_HOST: postgres
-      CVAT_ROOT_USER: ${CVAT_ADMIN_USERNAME}
-      CVAT_ROOT_PASSWORD: ${CVAT_ADMIN_PASSWORD}
-      CVAT_ROOT_EMAIL: ${CVAT_ADMIN_EMAIL}
-    volumes:
-      - cvat_data:/home/django/data
-      - cvat_keys:/home/django/keys
-      - ${DATA_ROOT}:/data:ro  # 只读挂载原始数据
-    restart: unless-stopped
-
-  cvat-ui:
-    image: cvat/ui:${IMAGE_TAG}
-    container_name: spharx-cvat-ui
-    depends_on:
-      - cvat
-    ports:
-      - "8081:80"
-    restart: unless-stopped
-
-  # ========== 3D重建服务 ==========
-  
-  colmap:
-    build:
-      context: ./docker
-      dockerfile: colmap.Dockerfile
-    container_name: spharx-colmap
-    runtime: nvidia  # 如果启用GPU
-    environment:
-      NVIDIA_VISIBLE_DEVICES: ${COLMAP_GPU_INDEX}
-    volumes:
-      - ${WORKSPACE_ROOT}:/workspace
-      - ./config/colmap:/config:ro
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  # ========== AI服务 ==========
-  
-  sam-auto-labeler:
-    build:
-      context: ./docker
-      dockerfile: sam.Dockerfile
-    container_name: spharx-sam
-    ports:
-      - "8000:8000"
-    environment:
-      MODEL_TYPE: ${SAM_MODEL_TYPE}
-    volumes:
-      - ${WORKSPACE_ROOT}:/workspace
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  sa3d-lifter:
-    build:
-      context: ./docker
-      dockerfile: sa3d.Dockerfile
-    container_name: spharx-sa3d
-    volumes:
-      - ${WORKSPACE_ROOT}:/workspace
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  # ========== 物理仿真服务 ==========
-  
-  blender-physics:
-    build:
-      context: ./docker
-      dockerfile: blender.Dockerfile
-    container_name: spharx-blender
-    volumes:
-      - ${WORKSPACE_ROOT}:/workspace
-      - ${OUTPUT_ROOT}:/output
-
-  # ========== 监控服务 ==========
-  
-  prometheus:
-    image: prom/prometheus:v2.48.0
-    container_name: spharx-prometheus
-    ports:
-      - "${PROMETHEUS_PORT}:9090"
-    volumes:
-      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-    restart: unless-stopped
-
-volumes:
-  minio_data:
-  redis_data:
-  postgres_data:
-  cvat_data:
-  cvat_keys:
-  prometheus_data:
-
+# 自定义网络，所有服务在同一个网络中便于通信
 networks:
-  default:
-    name: spharx-network
+  spharx-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "172.20.0.0/16"  # 固定子网，避免重启变化
+
+# 数据卷定义（命名卷，便于管理和备份）
+volumes:
+  # 主数据卷：存储所有输入输出数据
+  spharx-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "/home/SpharxWorkshop/data"  # 绑定到宿主机目录
+  
+  # 模型缓存卷：存储下载的AI模型
+  model-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "/home/SpharxWorkshop/.cache/models"
+  
+  # 数据库卷：存储应用状态和元数据
+  postgres-data:
+    driver: local
+  
+  # Redis卷：缓存和消息队列
+  redis-data:
+    driver: local
+
+# 服务定义
+services:
+  # ==================== 主控制服务 ====================
+  spharx-controller:
+    build: 
+      context: .  # 使用当前目录下的Dockerfile
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.11  # 构建参数，可在Dockerfile中使用
+    container_name: ${PROJECT_NAME:-spharx}_controller
+    hostname: controller
+    restart: unless-stopped  # 自动重启策略
+    
+    # 端口映射（主机端口:容器端口）
+    ports:
+      - "8081:8080"  # 主API端口
+      - "5678:5678"  # 调试端口（如使用debugpy）
+    
+    # 环境变量文件（从.env加载）
+    env_file:
+      - .env
+    
+    # 环境变量覆盖（如有需要）
+    environment:
+      - PYTHONUNBUFFERED=1  # 确保Python输出实时刷新
+      - PYTHONPATH=/app     # Python模块搜索路径
+      - TZ=Asia/Shanghai    # 时区设置
+    
+    # 数据卷挂载（宿主机目录:容器内目录）
+    volumes:
+      # 代码挂载（开发时实时同步）
+      - .:/app:rw
+      
+      # 数据目录挂载
+      - spharx-data:/home/SpharxWorkshop/data:rw
+      
+      # 模型缓存
+      - model-cache:/root/.cache:rw
+      
+      # Docker套接字（允许控制其他容器，慎用）
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
+      
+      # 临时文件（可加快处理速度）
+      - /tmp:/tmp:rw
+    
+    # 资源限制（根据服务器配置调整）
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'   # 最多使用2个CPU核心
+          memory: 4G    # 最多使用4GB内存
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 依赖关系（先启动这些服务）
+    depends_on:
+      # - redis  # 后续添加
+      # - postgres  # 后续添加
+    
+    # 网络配置
+    networks:
+      spharx-network:
+        ipv4_address: 172.20.0.10  # 固定IP，便于服务间调用
+    
+    # 启动命令（默认保持容器运行）
+    command: tail -f /dev/null
+    # 生产环境使用：command: python src/main.py
+    
+    # 标签（便于管理和监控）
+    labels:
+      - "com.spharx.service=controller"
+      - "com.spharx.version=1.0"
+      - "com.spharx.stage=${PROJECT_STAGE:-development}"
+
+  # ==================== Redis服务（缓存和队列） ====================
+  # 注释：初期可先不启用，后期用于任务队列和缓存
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: ${PROJECT_NAME:-spharx}_redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   environment:
+  #     - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_pass}
+  #   command: redis-server --appendonly yes --requirepass $${REDIS_PASSWORD}
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - spharx-network
+
+  # ==================== PostgreSQL数据库 ====================
+  # 注释：用于存储任务状态、数据集元数据等
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: ${PROJECT_NAME:-spharx}_postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: spharx
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres_pass}
+  #     POSTGRES_DB: spharx_workshop
+  #     PGDATA: /var/lib/postgresql/data/pgdata
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #     - ./init-db:/docker-entrypoint-initdb.d:ro
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U spharx"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - spharx-network
+
+  # ==================== 2D标注服务（CVAT） ====================
+  # 注释：完整的CVAT包含多个服务，建议使用官方docker-compose
+  # 这里先定义占位，后续可以引用外部编排文件
+  # cvat:
+  #   extends:
+  #     file: docker-compose.overrides.yml
+  #     service: cvat
+  #   depends_on:
+  #     - redis
+  #     - postgres
+
+  # ==================== SAM模型服务 ====================
+  # 注释：用于2D自动预标注的独立服务
+  # sam-service:
+  #   build:
+  #     context: ./docker/sam
+  #     dockerfile: Dockerfile
+  #   container_name: ${PROJECT_NAME:-spharx}_sam
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8001:8000"  # SAM API端口
+  #   volumes:
+  #     - model-cache:/models:ro
+  #   environment:
+  #     - MODEL_TYPE=${SAM_MODEL:-vit_h}
+  #     - DEVICE=cpu  # 或 cuda（如有GPU）
+  #   networks:
+  #     - spharx-network
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '1.0'
+  #         memory: 2G
+
+  # ==================== 3D重建服务（COLMAP） ====================
+  # 注释：作为工具容器，按需启动
+  # colmap:
+  #   image: colmap/colmap:latest
+  #   container_name: ${PROJECT_NAME:-spharx}_colmap
+  #   restart: "no"  # 不自动重启，任务完成后退出
+  #   volumes:
+  #     - spharx-data:/data:rw
+  #     - /tmp:/tmp:rw
+  #   environment:
+  #     - CUDA_VISIBLE_DEVICES=${CUDA_DEVICE:--1}  # GPU设置
+  #   networks:
+  #     - spharx-network
+  #   # 此服务通常由控制器动态启动，不在这里常驻运行
+
+  # ==================== 监控服务（可选） ====================
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: ${PROJECT_NAME:-spharx}_prometheus
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - prometheus-data:/prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - spharx-network
+
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: ${PROJECT_NAME:-spharx}_grafana
+  #   restart: unless-stopped
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+  #   volumes:
+  #     - grafana-data:/var/lib/grafana
+  #     - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards:ro
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - prometheus
+  #   networks:
+  #     - spharx-network
+
+# ============================================
+# 特殊配置（覆盖默认设置）
+# ============================================
+x-spharx-defaults: &spharx-defaults
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      tag: "{{.Name}}"
+
+# 应用默认配置到所有服务（除非单独指定）
+# 注意：此语法需要Docker Compose v3.4+
+# 当前先注释，确保兼容性
+# services:
+#   spharx-controller:
+#     <<: *spharx-defaults

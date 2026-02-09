@@ -1,0 +1,40 @@
+# Blender 物理仿真配置
+blender:
+  # 路径配置
+  executable: "/usr/local/blender/blender"
+  python_executable: "/usr/local/blender/3.3/python/bin/python3.10"
+  script_dir: "/app/configs/physics/blender_scripts"
+  
+  # 物理引擎参数
+  physics:
+    engine: "BUILTIN"  # BUILTIN 或 BULLET
+    gravity: [0, 0, -9.81]
+    substeps: 10
+    solver_iterations: 50
+    
+  # 仿真参数
+  simulation:
+    fps: 60
+    duration: 5.0  # 秒
+    output_fps: 30
+    
+  # 材料属性预设
+  material_presets:
+    wood:
+      density: 650.0
+      friction: 0.4
+      restitution: 0.3
+    metal:
+      density: 7850.0
+      friction: 0.15
+      restitution: 0.1
+    plastic:
+      density: 950.0
+      friction: 0.3
+      restitution: 0.5
+    
+  # 输出设置
+  output:
+    format: "GLB"  # GLB, FBX, OBJ
+    include_animation: true
+    include_physics: true

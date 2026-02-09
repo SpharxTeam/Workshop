@@ -1,0 +1,36 @@
+# COLMAP 3D重建配置
+colmap:
+  # 特征提取
+  feature_extraction:
+    camera_model: "SIMPLE_RADIAL"
+    single_camera: true
+    camera_params: ""
+    max_image_size: 1600
+    max_num_features: 8192
+    db_path: "/home/SpharxWorkshop/workspace/processing/colmap/database.db"
+    
+  # 特征匹配
+  exhaustive_matcher:
+    block_size: 50
+    
+  # 稀疏重建
+  mapper:
+    ba_global_max_num_iterations: 30
+    ba_global_max_refinements: 5
+    ba_global_points_threshold: 1.0
+    
+  # 稠密重建（MVS）
+  dense_stereo:
+    max_image_size: 2000
+    window_radius: 5
+    window_step: 1
+    num_samples: 15
+    num_iterations: 5
+    
+  # 路径配置
+  paths:
+    bin_dir: "/usr/local/bin"  # COLMAP二进制文件路径
+    workspace_root: "/home/SpharxWorkshop/workspace/processing/colmap"
+    sparse_dir: "sparse"
+    dense_dir: "dense"
+    stereo_dir: "stereo"
