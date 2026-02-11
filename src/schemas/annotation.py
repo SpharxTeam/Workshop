@@ -57,7 +57,8 @@ class AnnotationObject(BaseSpharxModel):
     @property
     def bbox_object(self) -> BoundingBox2D:
         """获取BoundingBox2D对象"""
-        return BoundingBox2D(x=v[0], y=v[1], width=v[2], height=v[3])
+        v = self.bbox
+        return BoundingBox2D(id=f"bbox_{self.object_id}", x=v[0], y=v[1], width=v[2], height=v[3])
 
 
 class ImageAnnotation(BaseSpharxModel):

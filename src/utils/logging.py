@@ -8,7 +8,8 @@ import logging.config
 import yaml
 from pathlib import Path
 import sys
-from typing import Optional
+import os
+from typing import Optional, Dict, Any
 
 def setup_logging(config_path: Optional[str] = None, default_level=logging.INFO):
     """
@@ -51,7 +52,7 @@ class PipelineLogger:
     def __init__(self, pipeline_name: str, scene_id: str = None):
         self.logger = logging.getLogger(f"pipelines.{pipeline_name}")
         self.scene_id = scene_id
-        self.metrics = {}
+        self.metrics: Dict[str, Any] = {}
     
     def info(self, message: str, **kwargs):
         """记录信息日志"""

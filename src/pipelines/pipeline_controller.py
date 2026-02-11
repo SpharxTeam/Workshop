@@ -22,7 +22,7 @@ class PipelineController:
     def __init__(self, config: PipelineConfig):
         self.config = config
         self.logger = PipelineLogger("controller")
-        self.results_cache = {}
+        self.results_cache: Dict[str, Any] = {}
         
     async def run_2d_pipeline(self, scene_id: str) -> Dict[str, Any]:
         """运行2D标注流水线"""

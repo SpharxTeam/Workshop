@@ -2,7 +2,7 @@
 数据集相关数据模型
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import Field
 from .base import BaseSpharxModel, QualityLevel
 

@@ -1,0 +1,249 @@
+{
+  "directories": [
+    {
+      "path": "src",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "src/pipelines",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "src/schemas",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "src/utils",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "configs",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "configs/2d_annotation",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "configs/3d_reconstruction",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "configs/physics",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "deploy",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "scripts",
+      "required": true,
+      "exists": true
+    },
+    {
+      "path": "docs",
+      "required": true,
+      "exists": true
+    }
+  ],
+  "files": [
+    {
+      "path": "src/main.py",
+      "required": true,
+      "exists": true,
+      "size": 16636
+    },
+    {
+      "path": "docker-compose.yml",
+      "required": true,
+      "exists": true,
+      "size": 8038
+    },
+    {
+      "path": "Dockerfile",
+      "required": true,
+      "exists": true,
+      "size": 3717
+    },
+    {
+      "path": "requirements.txt",
+      "required": true,
+      "exists": true,
+      "size": 4259
+    },
+    {
+      "path": ".env.template",
+      "required": true,
+      "exists": true,
+      "size": 4959
+    },
+    {
+      "path": "README.md",
+      "required": true,
+      "exists": true,
+      "size": 9755
+    },
+    {
+      "path": "src/pipelines/__init__.py",
+      "required": true,
+      "exists": true,
+      "size": 2176
+    },
+    {
+      "path": "src/pipelines/pipeline_controller.py",
+      "required": true,
+      "exists": true,
+      "size": 6403
+    },
+    {
+      "path": "src/pipelines/pipeline_manager.py",
+      "required": true,
+      "exists": true,
+      "size": 14274
+    },
+    {
+      "path": "src/schemas/__init__.py",
+      "required": true,
+      "exists": true,
+      "size": 1031
+    },
+    {
+      "path": "src/schemas/config.py",
+      "required": true,
+      "exists": true,
+      "size": 4512
+    },
+    {
+      "path": "src/schemas/base.py",
+      "required": true,
+      "exists": true,
+      "size": 1303
+    },
+    {
+      "path": "src/schemas/task.py",
+      "required": true,
+      "exists": true,
+      "size": 2586
+    },
+    {
+      "path": "src/schemas/scene.py",
+      "required": true,
+      "exists": true,
+      "size": 2237
+    },
+    {
+      "path": "src/schemas/annotation.py",
+      "required": true,
+      "exists": true,
+      "size": 3020
+    },
+    {
+      "path": "src/utils/logging.py",
+      "required": true,
+      "exists": true,
+      "size": 3010
+    },
+    {
+      "path": "src/utils/__init__.py",
+      "required": true,
+      "exists": true,
+      "size": 131
+    },
+    {
+      "path": "configs/logging.yaml",
+      "required": true,
+      "exists": true,
+      "size": 1128
+    },
+    {
+      "path": "configs/2d_annotation/sam.yaml",
+      "required": true,
+      "exists": true,
+      "size": 618
+    },
+    {
+      "path": "configs/3d_reconstruction/colmap.yaml",
+      "required": true,
+      "exists": true,
+      "size": 904
+    },
+    {
+      "path": "deploy/01-init-server.sh",
+      "required": true,
+      "exists": true,
+      "size": 2686
+    },
+    {
+      "path": "deploy/02-clone-repos.sh",
+      "required": true,
+      "exists": true,
+      "size": 2665
+    },
+    {
+      "path": "deploy/03-setup-directories.sh",
+      "required": true,
+      "exists": true,
+      "size": 2978
+    },
+    {
+      "path": "scripts/run_2d_pipeline.sh",
+      "required": true,
+      "exists": true,
+      "size": 3217
+    }
+  ],
+  "modules": [
+    {
+      "module": "src.main",
+      "attribute": "main",
+      "importable": true
+    },
+    {
+      "module": "src.pipelines",
+      "attribute": "get_pipeline_module",
+      "importable": true
+    },
+    {
+      "module": "src.schemas",
+      "attribute": "PipelineConfig",
+      "importable": true
+    },
+    {
+      "module": "src.utils.logging",
+      "attribute": "setup_logging",
+      "importable": true
+    }
+  ],
+  "configs": [
+    {
+      "file": ".env.template",
+      "valid": true,
+      "has_content": true
+    },
+    {
+      "file": "docker-compose.yml",
+      "valid": true,
+      "has_content": true
+    },
+    {
+      "file": "Dockerfile",
+      "valid": true,
+      "has_content": true
+    },
+    {
+      "file": "requirements.txt",
+      "valid": true,
+      "has_content": true
+    }
+  ]
+}
