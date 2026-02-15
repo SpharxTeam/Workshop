@@ -1,684 +1,286 @@
-# Spharx Workshop - 智能视觉数据处理平台
+# Spharx Workshop 3.1
+## 物理世界数据工厂 · 从传感器到数据集的端到端自动化流水线
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.8%2B-blue" alt="Python Version">
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/Status-Development-orange" alt="Status">
-</p>
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/python-3.10-blue.svg)
+![Docker](https://img.shields.io/badge/docker-ready-brightgreen)
+![Intel RealSense](https://img.shields.io/badge/Intel%20RealSense-D455-orange)
 
-## 📋 项目简介
+> 我们不训练模型，我们只生产数据 —— 成为人工智能时代的"数据台积电"
 
-Spharx Workshop 是一个企业级的智能视觉数据处理平台，专为基于 Intel RealSense 相机的大规模数据采集和处理场景而设计。该平台采用现代化的微服务架构，提供从原始数据采集、质量检测、智能增强到最终数据交付的完整解决方案。
-
-### 🔧 核心特性
-
-- **多阶段流水线处理**：6个独立的处理阶段，支持模块化扩展
-- **实时质量监控**：内置模糊检测、曝光分析、时间同步验证
-- **智能数据增强**：集成YOLOv8目标检测，支持自动标注
-- **灵活部署方式**：支持本地开发、Docker容器化部署
-- **完善的监控体系**：基于Streamlit的可视化监控面板
-- **企业级配置管理**：多层次配置系统，支持环境隔离
-
-## 🏗️ 系统架构
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   数据采集层    │───▶│   处理流水线    │───▶│   数据交付层    │
-│  RealSense相机  │    │  6阶段处理模块  │    │  云存储/本地    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   硬件控制模块  │    │   质量检测系统  │    │   监控告警系统  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-### 处理流水线详解
-
-1. **📥 Ingest（数据摄入）**
-   - RealSense原始数据解析
-   - 隐私数据自动脱敏
-   - 数据格式标准化
-
-2. **🔍 Quality（质量检测）**
-   - 图像模糊度分析（Laplacian方差检测）
-   - 曝光异常检测（过曝/欠曝）
-   - 时间同步验证
-   - 质量报告生成
-
-3. **✨ Enhance（数据增强）**
-   - YOLOv8目标自动标注
-   - 数据增强处理
-   - 标注质量验证
-
-4. **📐 Calibrate（相机标定）**
-   - 批量内参/外参标定
-   - 标定漂移检测
-   - 标定参数优化
-
-5. **📦 Pack（数据打包）**
-   - ROS Bag格式封装
-   - COCO标注格式转换
-   - 数据完整性校验
-
-6. **🚚 Delivery（数据交付）**
-   - 云存储上传（AWS S3/阿里云OSS）
-   - 本地存储归档
-   - 交付状态跟踪
-
-## 🛠️ 技术栈概览
-
-### 核心技术组件
-
-| 类别 | 技术栈 | 版本要求 | 用途 |
-|------|--------|----------|------|
-| **编程语言** | Python | 3.8+ | 核心开发语言 |
-| **计算机视觉** | OpenCV, scikit-image | 最新版 | 图像处理基础库 |
-| **深度学习** | PyTorch, Ultralytics | 1.10+, 8.0+ | YOLO目标检测 |
-| **硬件接口** | pyrealsense2 | 2.50+ | RealSense相机控制 |
-| **Web框架** | Streamlit, FastAPI | 1.10+, 0.78+ | 监控面板和API |
-| **异步处理** | Celery, Redis | 5.2+, 4.3+ | 任务队列和缓存 |
-| **数据管理** | ROS Bag, HDF5 | 最新版 | 数据存储格式 |
-| **容器化** | Docker, docker-compose | 最新版 | 容器部署 |
-| **数据库** | PostgreSQL, SQLAlchemy | 1.4+ | 元数据管理 |
-| **监控** | Prometheus, Loguru | 最新版 | 系统监控 |
-
-## 📁 项目结构详解
-
-```
-Workshop/
-├── 📁 hardware/                 # 硬件抽象层
-│   ├── 📁 camera/              # 相机管理系统
-│   │   ├── realSense_manager.py    # 相机生命周期管理
-│   │   ├── sync_controller.py      # 多相机同步控制
-│   │   └── sync_validator.py       # 同步精度验证
-│   ├── 📁 calibration/         # 相机标定工具集
-│   │   ├── intrinsics_calib.py     # 内参标定算法
-│   │   └── extrinsics_calib.py     # 外参标定算法
-│   └── 📁 scripts/             # 硬件维护脚本
-│       ├── install_drivers.sh      # 驱动自动安装
-│       └── test_sync.sh            # 同步功能测试
-│
-├── 📁 pipelines/                # 核心处理流水线
-│   ├── 📁 00_ingest/           # 数据摄入模块
-│   │   ├── realsense_parser.py     # 数据解析器
-│   │   ├── privacy_desensitizer.py # 隐私保护处理
-│   │   ├── config_loader.py        # 模块配置加载
-│   │   └── requirements.txt        # 依赖声明
-│   ├── 📁 01_quality/          # 质量检测模块
-│   │   ├── blur_detector.py        # 模糊度检测算法
-│   │   ├── quality_report.py       # 质量评估报告
-│   │   ├── config_loader.py        # 配置管理
-│   │   └── requirements.txt        # 依赖声明
-│   ├── 📁 02_enhance/          # 数据增强模块
-│   │   ├── yolo_annotator.py       # YOLO自动标注
-│   │   ├── config_loader.py        # 配置加载
-│   │   └── requirements.txt        # 依赖声明
-│   ├── 📁 03_calibrate/        # 相机标定模块
-│   │   ├── batch_calibrate.py      # 批量标定工具
-│   │   ├── config_loader.py        # 配置管理
-│   │   └── requirements.txt        # 依赖声明
-│   ├── 📁 04_pack/             # 数据打包模块
-│   │   ├── ros_bag_packer.py       # ROS Bag封装器
-│   │   ├── config_loader.py        # 配置加载
-│   │   └── requirements.txt        # 依赖声明
-│   └── 📁 05_delivery/         # 数据交付模块
-│       └── requirements.txt        # 依赖声明
-│
-├── 📁 schemas/                  # 数据模型定义
-│   ├── __init__.py             # 模块初始化
-│   ├── scene.py                # 场景数据模型
-│   ├── sensor_stream.py        # 传感器流模型
-│   └── dataset.py              # 数据集模型
-│
-├── 📁 dashboard/                # 可视化监控系统
-│   ├── app.py                  # Streamlit主应用
-│   └── 📁 pages/               # 监控页面集合
-│       ├── 01_capture.py       # 数据采集监控
-│       ├── 02_monitor.py       # 系统状态监控
-│       └── 03_data.py          # 数据资产管理
-│
-├── 📁 configs/                  # 配置管理中心
-│   ├── logging.yaml            # 日志系统配置
-│   ├── pipeline_config.yaml    # 流水线参数配置
-│   └── quality_thresholds.yaml # 质量检测阈值
-│
-├── 📁 data/                     # 数据存储目录
-│   ├── raw/                    # 原始采集数据
-│   ├── processed/              # 处理中间数据
-│   └── datasets/               # 最终数据产品
-│
-├── 📁 logs/                     # 系统日志目录
-├── 📁 tests/                    # 测试套件
-│   └── fixtures/               # 测试数据夹具
-│
-├── 📁 scripts/                  # 辅助工具脚本
-│   ├── 📁 pipeline/            # 流水线执行脚本
-│   │   └── run_full.sh         # 完整流程执行器
-│   └── 📁 utils/               # 实用工具集合
-│       ├── config_loader.py            # 配置工具类
-│       ├── generate_realistic_calibration.py  # 标定数据生成器
-│       └── github_fetch.sh             # 资源获取工具
-│
-├── 📁 docs/                     # 项目文档
-├── .env.template                # 环境变量模板
-├── .gitignore                   # Git忽略规则
-├── LICENSE                      # 开源许可证
-├── docker-compose.yml           # Docker编排配置
-├── requirements.txt             # 项目依赖清单
-├── bootstrap.sh                 # 一键初始化脚本
-├── PROGRESS.md                  # 项目进度追踪
-└── README.md                    # 项目说明文档
-```
-
-## ⚡ 快速开始指南
-
-### 📋 环境要求
-
-**基础环境**：
-- Python 3.8 或更高版本
-- Git 版本控制系统
-- 4GB 以上可用磁盘空间
-
-**推荐配置**：
-- Ubuntu 20.04+/CentOS 8+/Windows 10+
-- 16GB RAM（推荐32GB）
-- NVIDIA GPU（推荐RTX 3070+，用于深度学习加速）
-- Docker Engine 20.10+（容器化部署）
-
-### 🚀 部署方式选择
-
-#### 方式一：本地开发环境（推荐开发者）
-
-```bash
-# 1. 克隆项目源码
-git clone https://gitee.com/spharx/workshop.git
-cd workshop
-
-# 2. 创建Python虚拟环境
-python -m venv venv
-
-# 3. 激活虚拟环境
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# 4. 安装项目依赖
-pip install -r requirements.txt
-
-# 5. 初始化项目配置
-cp .env.template .env
-# 编辑.env文件配置必要参数
-
-# 6. 创建数据目录结构
-mkdir -p data/{raw,processed,datasets} logs
-
-# 7. 启动监控面板验证安装
-streamlit run dashboard/app.py
-```
-
-#### 方式二：一键自动化部署（推荐生产环境）
-
-```bash
-# 1. 克隆项目
-git clone https://gitee.com/spharx/workshop.git
-cd workshop
-
-# 2. 运行自动化初始化脚本
-chmod +x bootstrap.sh
-./bootstrap.sh
-
-# 脚本将自动完成：
-# ✓ 环境检查和依赖验证
-# ✓ 虚拟环境创建和激活
-# ✓ 依赖包安装和更新
-# ✓ 配置文件初始化
-# ✓ 数据目录结构创建
-# ✓ 可选的硬件驱动安装
-# ✓ 基础功能测试运行
-```
-
-#### 方式三：Docker容器化部署（推荐团队协作）
-
-```bash
-# 1. 构建并启动完整服务栈
-docker-compose up --build -d
-
-# 2. 查看服务运行状态
-docker-compose ps
-
-# 3. 查看实时日志
-docker-compose logs -f
-
-# 4. 启动特定服务模块
-docker-compose up ingest quality enhance
-
-# 5. 停止所有服务
-docker-compose down
-```
-
-### 🔧 环境配置详解
-
-#### 核心环境变量配置
-
-```bash
-# .env 文件配置示例
-
-# ████████ 基础路径配置 ████████
-PROJECT_NAME=SpharxWorkshop           # 项目标识名称
-DATA_ROOT=/data                      # 数据根目录
-RAW_DIR=/data/raw                    # 原始数据目录
-PROCESSED_DIR=/data/processed        # 处理数据目录
-DATASETS_DIR=/data/datasets          # 数据集输出目录
-LOG_DIR=/logs                        # 日志文件目录
-
-# ████████ 质量检测阈值 ████████
-QUALITY_BLUR_THRESHOLD=100           # 模糊度检测阈值(Laplacian方差)
-QUALITY_OVEREXPOSED_THRESHOLD=240    # 过曝检测阈值(像素平均值)
-QUALITY_UNDEREXPOSED_THRESHOLD=30    # 欠曝检测阈值(像素平均值)
-QUALITY_SYNC_THRESHOLD_MS=0.5        # 时间同步误差阈值(毫秒)
-
-# ████████ 云存储配置 ████████
-OSS_ENABLED=false                    # 是否启用云存储
-OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com  # OSS服务端点
-OSS_BUCKET=your-bucket-name          # 存储桶名称
-OSS_ACCESS_KEY_ID=your-access-key    # 访问密钥ID
-OSS_ACCESS_KEY_SECRET=your-secret-key # 访问密钥Secret
-
-# ████████ 告警通知配置 ████████
-NOTIFY_ENABLED=false                 # 是否启用告警通知
-NOTIFY_WEBHOOK=https://your-webhook-url  # 告警推送地址
-```
-
-#### 配置文件详解
-
-**1. 流水线配置 (`configs/pipeline_config.yaml`)**
-```yaml
-global:
-  data_root: /data                   # 全局数据根路径
-  log_dir: /logs                     # 全局日志目录
-
-ingest:
-  # 数据摄入模块配置（通过命令行参数传递）
-
-quality:
-  blur_threshold: 100                # 模糊检测敏感度
-  over_threshold: 240                # 过曝判断阈值
-  under_threshold: 30                # 欠曝判断阈值
-  expected_fps: 30                   # 期望帧率（丢帧检测）
-
-enhance:
-  conf_threshold: 0.25               # YOLO置信度阈值
-  model_path: "yolov8n.pt"           # 检测模型路径
-
-calibrate:
-  chessboard: [9, 6]                 # 标定棋盘格尺寸
-  square_size: 0.025                 # 棋盘格边长(米)
-
-pack:
-  formats: ["ros", "coco"]           # 输出格式列表
-```
-
-### ▶️ 系统运行指南
-
-#### 1. 启动监控面板
-
-```bash
-# 启动可视化监控系统
-streamlit run dashboard/app.py --server.port 8501
-
-# 访问地址：http://localhost:8501
-# 默认包含三个监控页面：
-# - 数据采集监控：实时查看相机状态和采集进度
-# - 系统状态监控：CPU、内存、磁盘使用情况
-# - 数据资产管理：已处理数据集浏览和管理
-```
-
-#### 2. 执行数据采集
-
-```bash
-# 启动RealSense相机数据采集
-python -m hardware.camera.realSense_manager
-
-# 支持的命令行参数：
-# --config configs/camera_config.yaml  # 指定相机配置文件
-# --duration 3600                      # 采集持续时间(秒)
-# --output data/raw/session_001        # 输出目录
-```
-
-#### 3. 运行处理流水线
-
-```bash
-# 方法一：单模块执行（开发调试）
-python -m pipelines.00_ingest.realsense_parser \
-  --input data/raw/sample.bag \
-  --output data/processed/scene_001
-
-# 方法二：完整流程执行（生产环境）
-./scripts/pipeline/run_full.sh \
-  --input data/raw/session_001 \
-  --output data/datasets/final_dataset
-
-# 方法三：Docker容器执行
-docker-compose run --rm ingest \
-  --input /data/raw/session_001 \
-  --output /data/processed/scene_001
-```
-
-## 📊 性能基准测试
-
-### 硬件性能要求
-
-| 配置等级 | CPU | 内存 | 存储 | GPU | 适用场景 |
-|----------|-----|------|------|-----|----------|
-| **入门级** | Intel i5-9400 | 16GB DDR4 | 1TB SSD | 无 | 开发测试、小规模处理 |
-| **标准级** | Intel i7-10700 | 32GB DDR4 | 2TB NVMe | GTX 1660 | 中等规模生产环境 |
-| **专业级** | Intel i9-12900 | 64GB DDR4 | 4TB NVMe | RTX 3080 | 大规模并发处理 |
-| **企业级** | Dual Xeon E5 | 128GB DDR4 | 8TB NVMe RAID | Dual RTX 3090 | 超大规模生产部署 |
-
-### 处理性能指标
-
-| 处理阶段 | 处理速度 | 资源消耗 | 并发能力 | 备注 |
-|----------|----------|----------|----------|------|
-| **数据摄入** | 100-150 MB/s | CPU: 30%, 内存: 2GB | 4路并发 | 受存储I/O限制 |
-| **质量检测** | 40-60 FPS | CPU: 60%, 内存: 4GB | 8路并发 | 可GPU加速 |
-| **YOLO标注** | 25-35 FPS | GPU: 70%, 内存: 6GB | 4路并发 | 需要CUDA支持 |
-| **相机标定** | 10-15 场景/分钟 | CPU: 80%, 内存: 8GB | 2路并发 | 计算密集型 |
-| **数据打包** | 180-220 MB/s | CPU: 40%, 内存: 3GB | 6路并发 | 受存储I/O限制 |
-
-### 扩展性设计
-
-- **水平扩展**：各处理模块支持多实例并行运行
-- **负载均衡**：基于Redis的任务队列实现动态负载分配
-- **故障恢复**：支持断点续传和错误重试机制
-- **资源隔离**：Docker容器化确保资源使用边界
-
-## 🔍 开发者指南
-
-### 代码质量标准
-
-#### 编码规范
-```python
-# 遵循PEP 8标准，示例：
-def process_image_frame(
-    frame: np.ndarray, 
-    config: Dict[str, Any]
-) -> Tuple[np.ndarray, Dict[str, float]]:
-    """
-    处理单帧图像数据
-    
-    Args:
-        frame: 输入图像帧
-        config: 处理配置参数
-        
-    Returns:
-        处理后的图像和质量指标字典
-    """
-    # 实现逻辑...
-    pass
-```
-
-#### 依赖管理
-```bash
-# 开发环境依赖安装
-pip install -r requirements-dev.txt
-
-# 包含额外的开发工具：
-# - black: 代码格式化
-# - flake8: 语法检查
-# - mypy: 类型检查
-# - pytest: 单元测试框架
-# - pre-commit: 提交前检查钩子
-```
-
-### 测试策略
-
-#### 单元测试
-```bash
-# 运行所有单元测试
-pytest tests/ -v
-
-# 运行特定模块测试
-pytest tests/test_camera_manager.py::TestCameraManager
-
-# 生成覆盖率报告
-pytest --cov=pipelines --cov-report=html tests/
-
-# 并行执行测试
-pytest -n auto tests/
-```
-
-#### 集成测试
-```bash
-# 端到端流水线测试
-./scripts/test/e2e_pipeline_test.sh
-
-# 硬件兼容性测试
-./hardware/scripts/test_hardware_compatibility.sh
-
-# 性能基准测试
-./scripts/test/performance_benchmark.sh
-```
-
-### CI/CD流程
-
-```yaml
-# .github/workflows/ci.yml 示例
-name: Continuous Integration
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-      - name: Run tests
-        run: pytest tests/ --cov=pipelines
-      - name: Code quality checks
-        run: |
-          black --check .
-          flake8 .
-          mypy .
-```
-
-### 贡献流程
-
-1. **Fork项目** → `git clone` → `git checkout -b feature/new-feature`
-2. **开发实现** → 编写代码 → 添加测试 → 运行检查
-3. **提交代码** → `git commit -m "feat: 添加新功能描述"`
-4. **推送分支** → `git push origin feature/new-feature`
-5. **创建PR** → 填写详细描述 → 等待代码审查
-
-## 🛟 故障排查手册
-
-### 常见问题解决方案
-
-#### 硬件相关问题
-
-**问题1：RealSense设备无法识别**
-```bash
-# 检查设备连接状态
-lsusb | grep -i realsense
-
-# 验证USB权限
-ls -l /dev/bus/usb/*/*
-
-# 重新安装驱动程序
-sudo ./hardware/scripts/install_drivers.sh
-
-# 检查内核模块加载
-lsmod | grep uvcvideo
-```
-
-**问题2：相机同步失败**
-```bash
-# 运行同步测试脚本
-./hardware/scripts/test_sync.sh
-
-# 检查硬件连接线缆
-# 验证电源供应稳定性
-# 确认固件版本兼容性
-```
-
-#### 软件相关问题
-
-**问题3：Docker容器启动失败**
-```bash
-# 查看详细错误日志
-docker-compose logs --tail=50 <service_name>
-
-# 检查容器资源配置
-docker stats
-
-# 重建镜像（清除缓存）
-docker-compose build --no-cache
-
-# 验证docker-compose.yml语法
-docker-compose config
-```
-
-**问题4：依赖包安装失败**
-```bash
-# 升级pip到最新版本
-pip install --upgrade pip
-
-# 清除pip缓存
-pip cache purge
-
-# 使用国内镜像源
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-# 单独安装问题包
-pip install numpy==1.21.0 --force-reinstall
-```
-
-#### 性能相关问题
-
-**问题5：处理速度过慢**
-```bash
-# 监控系统资源使用
-htop
-iotop
-nvidia-smi  # 如果有GPU
-
-# 检查存储I/O性能
-dd if=/dev/zero of=test bs=1M count=1000
-
-# 分析瓶颈环节
-python -m cProfile -o profile.out your_script.py
-```
-
-### 日志系统使用
-
-#### 日志级别配置
-```yaml
-# configs/logging.yaml
-version: 1
-formatters:
-  standard:
-    format: '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-handlers:
-  file:
-    class: logging.FileHandler
-    filename: /logs/workshop.log
-    level: INFO
-  console:
-    class: logging.StreamHandler
-    level: WARNING
-```
-
-#### 日志查看命令
-```bash
-# 实时查看主日志
-tail -f logs/workshop.log
-
-# 按级别过滤日志
-grep "ERROR" logs/workshop.log
-
-# 查看Docker服务日志
-docker-compose logs -f --tail=100 ingest
-
-# 按时间范围查看日志
-sed -n '/2024-01-01/,/2024-01-02/p' logs/workshop.log
-```
-
-## 📈 项目发展规划
-
-### 当前阶段状态：🏗️ 基础架构完成 (100%)
-
-**已完成里程碑**：
-- ✅ 项目目录结构标准化
-- ✅ 核心模块框架搭建
-- ✅ 配置管理体系建立
-- ✅ Docker部署环境配置
-- ✅ 依赖关系管理完善
-
-### 下一阶段目标：🚀 功能实现阶段
-
-**短期目标（1-3个月）**：
-- [ ] 完善各管道模块核心业务逻辑
-- [ ] 实现完整的数据处理流程
-- [ ] 开发实时监控告警功能
-- [ ] 建立自动化测试体系
-
-**中期目标（3-6个月）**：
-- [ ] 性能优化和扩展性提升
-- [ ] 完善文档和使用指南
-- [ ] 建立CI/CD流水线
-- [ ] 准备生产环境部署
-
-**长期愿景（6-12个月）**：
-- [ ] 支持更多相机型号和传感器
-- [ ] 增强AI算法能力和准确度
-- [ ] 构建插件化生态系统
-- [ ] 提供商业化部署方案
-
-## 🤝 社区与支持
-
-### 获取帮助
-
-- **官方文档**：查阅 [docs/](docs/) 目录下的详细文档
-- **问题反馈**：在 [Issues](https://gitee.com/spharx/workshop/issues) 提交问题
-- **功能建议**：通过 [Pull Requests](https://gitee.com/spharx/workshop/pulls) 贡献代码
-- **技术交流**：加入开发者微信群（请联系项目维护者）
-
-### 贡献者名单
-
-感谢以下开发者的贡献：
-- [@lidecheng](https://gitee.com/lidecheng) - 项目发起人和主要架构师
-- [@developer-team](https://gitee.com/spharx) - 核心开发团队
-
-## 📄 许可证信息
-
-本项目采用 **MIT License** 开源许可证，详细条款请参见 [LICENSE](LICENSE) 文件。
-
-```
-MIT License
-
-Copyright (c) 2024 Spharx Team
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-```
+Spharx Workshop 是一套面向封闭物理空间的自动化数据采集与处理工具链。它将真实物理世界中的物体运动、人机交互、环境变化，变成干净、同步、可用的传感器数据，交付给所有需要理解物理世界的 AI 公司。
 
 ---
 
-<p align="center">
-  <strong> Made with ❤️ by Spharx Team </strong>
-  <br>
-  <sub>Latest Update: February 2026 | Version: 1.0.0-beta</sub>
-</p>
+## 📖 目录
+
+- [为什么需要 Spharx Workshop？](#为什么需要-spharx-workshop)
+- [核心理念](#核心理念)
+- [技术架构](#技术架构)
+- [当前成果](#当前成果)
+- [快速开始](#快速开始)
+- [模块详解](#模块详解)
+- [项目结构](#项目结构)
+- [路线图](#路线图)
+- [贡献指南](#贡献指南)
+- [许可证](#许可证)
+
+---
+
+## 🤔 为什么需要 Spharx Workshop？
+
+当前具身智能发展的核心瓶颈是真实物理世界数据的稀缺。现有数据集多为互联网图片或仿真生成，无法满足机器人在真实环境中感知、交互的需求。各大 AI 实验室和机器人公司正在争夺高质量、多模态的物理世界数据，但数据的采集、清洗、标定、打包过程极度依赖人工，效率低下且不可重复。
+
+Spharx Workshop 的目标是将数据生产工业化。我们提供一套从硬件同步到数据集交付的全自动化工具链，让数据生产像芯片制造一样，可扩展、可重复、可验证。我们相信，未来的 AI 竞争，归根结底是数据基础设施的竞争。Spharx 就是为这场竞争准备的"数据工厂"。
+
+---
+
+## 🧠 核心理念
+
+- **物理世界优先**：直接从真实传感器（RGB-D、IMU、环境传感器）采集，确保数据反映真实物理规律。
+- **自动化闭环**：从采集、质检、增强、标定到打包，全流程无人干预，保证数据一致性与可追溯性。
+- **模块化与可扩展**：每个处理阶段独立容器化，可单独升级或替换，支持第三方算法集成。
+- **生产就绪**：代码经过实际数据测试，具备日志、异常处理、配置分离等工业级特性，可直接部署于云服务器或边缘节点。
+- **数据即产品**：产出的数据集附带完整元数据（质检报告、标定参数、文件哈希），客户开箱即用，无需二次处理。
+
+---
+
+## 🏗️ 技术架构
+
+[硬件层] 3×RealSense D455（硬件同步） + IMU/环境传感器（可选）
+    ↓
+[采集层] 本地录制 → 原始.bag文件
+    ↓
+[处理层] 云服务器Docker容器化流水线
+    ├── 00_ingest    # 数据导入与解析（真实bag → RGB视频、深度图、IMU、时间戳）
+    ├── 01_quality   # 自动化质检（模糊/曝光/丢帧检测，生成质检报告）
+    ├── 02_enhance   # 语义标注（YOLOv8）+ 预留SLAM轨迹
+    ├── 03_calibrate # 批量标定（棋盘格内参，输出相机矩阵）
+    ├── 04_pack      # 数据集打包（复制文件，生成manifest.json含SHA256）
+    └── 05_delivery  # 交付模块（OSS上传、通知，预留）
+    ↓
+[存储层] 本地归档 / L1里云OSS
+    ↓
+[交付层] 标准化L0/L1/L2数据集（含完整元数据）
+
+### 数据分级
+
+| 等级     | 内容                                      | 典型客户               |
+|----------|-------------------------------------------|------------------------|
+| L0 基础版 | 原始RGB-D + IMU + 基础质检                | 初创AI团队、科研院所   |
+| L1 增强版 | L0 + 语义标注（COCO格式）+ SLAM轨迹       | 商用机器人厂商         |
+| L2 定制版 | L1 + 客户定制格式 + 专属交付服务          | 大型科技公司、车企     |
+
+---
+
+## 🎯 当前成果
+
+截至2026年2月，Spharx Workshop 已完成以下核心功能，并通过真实 RealSense D435i 数据的测试验证：
+
+✅ 硬件同步方案：完成3×D455硬件同步的软件配置代码（GPIO连接 + pyrealsense2 同步模式设置）。  
+✅ 真实数据解析：ingest 模块可读取任意 RealSense .bag 文件，提取 RGB 视频（H.264）、深度图（16-bit PNG）、IMU 数据和时间戳。  
+✅ 自动化质检：quality 模块基于 OpenCV 实现模糊检测、曝光检测、丢帧统计，生成 JSON 报告，并可自定义阈值。  
+✅ 语义标注：enhance 模块集成 YOLOv8，对视频逐帧进行目标检测，输出 COCO 格式标注文件（支持置信度阈值设置）。  
+✅ 相机标定：calibrate 模块基于棋盘格实现内参标定，重投影误差可达亚像素级，并提供虚拟棋盘格生成工具用于测试。  
+✅ 数据集打包：pack 模块将所有处理后的文件（视频、深度图、质检报告、标注、标定参数）收集至统一目录，生成包含 SHA256 哈希的 manifest.json，确保数据完整性。  
+✅ 配置分离：所有可调参数（阈值、模型路径、棋盘格尺寸等）集中管理于 configs/pipeline_config.yaml，支持通过命令行或环境变量覆盖。  
+✅ 统一日志与异常处理：每个模块均使用 Python logging，同时输出到控制台和 /logs 下的独立文件，并捕获所有已知异常。  
+✅ Docker 优化：采用多阶段构建、国内 pip 镜像源，显著减小镜像体积，构建速度提升 30% 以上。  
+✅ 自动化脚本：提供 run_full.sh 一键处理指定 bag，自动生成场景 ID，串联所有模块。
+
+**已验证的输入**：Intel RealSense D435i 官方示例 bag（D435i_Walking.bag，约 700MB，518 帧）。  
+**输出示例**：最终数据集包含 rgb.mp4、518 张深度图、timestamps.csv、quality_report.json、annotations.json（YOLO 检测 591 个目标）、intrinsics.json（标定结果）及 manifest.json。
+
+---
+
+## 🚀 快速开始
+
+### 环境要求
+
+- **操作系统**：Ubuntu 22.04 / [Gitee](https://gitee.com)，或 Windows + WSL2
+- **Docker**：20.10+，并启用 WSL2 后端（Windows）
+- **内存**：至少 8GB（建议 16GB）
+- **磁盘**：50GB 可用空间（用于存放数据和镜像）
+
+### 安装步骤
+
+1. **克隆仓库**
+
+git clone https://gitee.com/spharx/workshop.git
+cd workshop
+git checkout workshop3.3.1  # 当前稳定分支
+
+2. **创建环境变量文件**
+
+cp .env.template .env
+# 根据需要编辑 .env（如 OSS 配置，暂不需要）
+
+3. **构建所有镜像**（首次构建约 30 分钟，取决于网络）
+
+docker-compose build
+
+4. **准备测试数据**
+
+将任意 RealSense .bag 文件放入 `data/raw/` 目录。如果没有，可使用我们提供的示例下载脚本（需网络）：
+
+wget -O data/raw/D435i_Walking.bag https://github.com/IntelRealSense/librealsense/raw/development/unit-tests/data/d435i_sample.bag
+
+若下载失败，可先用模拟模式（见下文）。
+
+5. **运行全流程**
+
+./scripts/pipeline/run_full.sh /data/raw/你的文件.bag
+
+脚本会自动生成场景 ID（如 `scene_20260215_123456`），并在 `data/datasets/` 下创建最终数据集。
+
+6. **验证运行**
+
+# 查看生成的 manifest
+cat data/datasets/scene_*/manifest.json | jq .  # 需安装 jq
+
+# 查看日志
+tail -f logs/*.log
+
+### 模拟模式（无硬件或数据时）
+
+只需创建一个空 .bag 文件，ingest 模块会自动生成模拟数据（随机 RGB 视频、深度图等），方便测试流水线逻辑。
+
+touch data/raw/sample.bag
+./scripts/pipeline/run_full.sh /data/raw/sample.bag
+
+---
+
+## 🔍 模块详解
+
+### 00_ingest：数据导入
+
+- **输入**：.bag 文件（RealSense 格式）
+- **输出**：rgb.mp4、depth/（PNG 序列）、timestamps.csv、imu.csv（若存在）
+- **核心逻辑**：使用 pyrealsense2 读取 bag，禁用实时播放，逐帧提取彩色、深度和 IMU 数据。彩色帧编码为 H.264 视频，深度帧保存为 16-bit PNG，时间戳和 IMU 保存为 CSV。
+- **异常处理**：若文件不存在或为空，输出错误并退出；若 bag 无 IMU，记录 info 但不报错。
+
+### 01_quality：质检
+
+- **模糊检测**：cv2.Laplacian 方差，低于 `blur_threshold` 记为模糊。
+- **曝光检测**：平均亮度，高于 `over_threshold` 为过曝，低于 `under_threshold` 为欠曝。
+- **丢帧统计**：比较相邻时间戳间隔，超过 1.5 倍帧间隔记为丢帧。
+- **输出**：quality_report.json，包含各帧索引和整体合格判断。
+
+### 02_enhance：增强
+
+- **语义标注**：使用 ultralytics YOLOv8 对视频逐帧检测，生成 COCO 格式的 annotations.json。
+- **模型下载**：模型在容器启动时由 Ultralytics 自动下载（已安装 curl 确保下载工具可用），文件约 6MB。
+- **预留接口**：orb_slam_runner.py 占位，供后续集成 SLAM。
+
+### 03_calibrate：标定
+
+- **棋盘格检测**：cv2.findChessboardCorners 带自适应阈值标志，提高检测率。
+- **标定**：使用 cv2.calibrateCamera，输出相机矩阵、畸变系数、重投影误差。
+- **辅助工具**：scripts/utils/generate_realistic_calibration.py 可生成带棋盘格的虚拟图像，用于无硬件时测试。
+
+### 04_pack：打包
+
+- **必需文件**：rgb.mp4、timestamps.csv，缺失则报错。
+- **可选文件**：imu.csv、depth/、质检报告、标注、标定结果，缺失仅记录 info。
+- **哈希计算**：对每个输出文件计算 SHA256，存入 manifest.json，便于后续验证。
+
+---
+
+## 📁 项目结构
+
+.
+├── .env.template                # 环境变量模板
+├── .gitignore                   # Git忽略规则
+├── README.md                    # 本文件
+├── docker-compose.yml           # 开发环境编排
+├── bootstrap.sh                 # 服务器部署脚本（待完善）
+├── hardware/                    # 硬件控制代码
+│   ├── camera/                  # 相机同步、管理
+│   ├── calibration/             # 标定函数
+│   └── scripts/                 # 驱动安装、测试
+├── pipelines/                   # 数据处理流水线（各模块子目录）
+│   ├── 00_ingest/
+│   ├── 01_quality/
+│   ├── 02_enhance/
+│   ├── 03_calibrate/
+│   ├── 04_pack/
+│   └── 05_delivery/             # 预留
+├── schemas/                     # Pydantic 数据模型
+├── configs/                     # 配置文件
+├── scripts/                     # 运维与工具脚本
+│   ├── deploy/                  # 部署脚本
+│   ├── pipeline/                # 流水线执行脚本
+│   └── utils/                   # 辅助工具
+├── docs/                        # 文档（待填充）
+├── tests/                       # 单元测试（预留）
+├── data/                        # 数据目录（git忽略）
+└── logs/                        # 日志目录（git忽略）
+
+---
+
+## 🗺️ 路线图
+
+### 已完成（v3.1）
+
+- 硬件同步软件框架
+- 真实 bag 解析
+- 质检模块（模糊/曝光/丢帧）
+- YOLOv8 语义标注
+- 棋盘格内参标定
+- 数据集打包与哈希验证
+- 配置分离与日志统一
+- Docker 镜像优化
+
+### 进行中（v3.2）
+
+- 多相机同步采集脚本
+- 外参标定（多相机相对位姿）
+- 集成 ORB-SLAM3 生成相机轨迹
+- 交付模块（OSS 上传 + 微信通知）
+
+### 未来规划
+
+- 硬件扩展：支持 LiDAR、热成像传感器
+- 算法扩展：集成 SAM 大模型进行实例分割
+- 平台化：提供 Web 仪表盘管理采集任务和数据集
+- 云原生：迁移至 K3s，实现自动扩缩容和监控
+- 数据服务：为客户提供私有化部署和数据定制
+
+---
+
+## 🤝 贡献指南
+
+我们欢迎任何形式的贡献，包括但不限于：
+
+- 报告 Bug 或提出功能需求
+- 提交代码优化或新模块
+- 改进文档
+
+请通过 GitHub Issues 或 Pull Request 与我们联系。开发流程：
+
+1. Fork 本仓库
+2. 创建功能分支 (`git checkout -b feature/your-feature`)
+3. 提交更改 (`git commit -m 'feat: add something'`)
+4. 推送到分支 (`git push origin feature/your-feature`)
+5. 创建 Pull Request
+
+**代码规范**：PEP 8，需通过 flake8 检查；Dockerfile 应遵循最佳实践。
+
+---
+
+## 📄 许可证
+
+本项目采用 MIT 许可证，详情见 [LICENSE](LICENSE) 文件。
+
+---
+
+## 🌟 致谢
+
+感谢 Intel RealSense 团队提供的优秀 SDK 和示例数据，感谢 Ultralytics 开源的 YOLOv8 模型，感谢所有开源社区的支持。
+
+---
+
+> **Spharx Workshop** —— 始于数据，终于智能。  
+> 期待与您一起，构建 AI 时代的物理世界数据基础设施。
+
+_"数据是新的石油，但石油需要炼油厂。Spharx 就是你的数据炼油厂。"_
