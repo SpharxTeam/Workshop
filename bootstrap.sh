@@ -1,35 +1,77 @@
 #!/bin/bash
-set -euo pipefail
 
-SPHARX_HOME="${HOME}/SpharxWorkshop"
-REPO_URL="git@gitee.com:spharx/toolchain.git"
+# Workshop 项目初始化脚本
 
-echo "[Spharx Bootstrap] 开始初始化空间智能数据生产线"
-echo "=================================================="
+set -e  # 遇到错误时退出
 
-# 阶段0: 前置检查（git, docker, docker-compose）
-source ./scripts/deploy/00_check_prereqs.sh
+echo "🚀 开始初始化 Workshop 项目..."
 
-# 阶段1: 创建工作空间并克隆代码
-mkdir -p ${SPHARX_HOME}
-cd ${SPHARX_HOME}
-if [ ! -d "toolchain" ]; then
-    git clone ${REPO_URL} toolchain
+# 检查 Python 版本
+if ! command -v python3 &> /dev/null; then
+    echo "❌ 未找到 Python3，请先安装 Python 3.8+"
+    exit 1
 fi
-cd toolchain
 
-# 阶段2: 创建数据目录结构
-source ./scripts/deploy/01_create_dirs.sh
+PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
+echo "✅ Python 版本: $PYTHON_VERSION"
 
-# 阶段3: 生成.env（交互式，从模板复制）
-source ./scripts/deploy/02_generate_env.sh
+# 创建虚拟环境
+if [ ! -d "venv" ]; then
+    echo "🔧 创建虚拟环境..."
+    python3 -m venv venv
+fi
 
-# 阶段4: 构建自定义Docker镜像
-source ./scripts/deploy/03_build_images.sh
+# 激活虚拟环境
+echo "🔧 激活虚拟环境..."
+source venv/bin/activate
 
-# 阶段5: 启动长期运行服务
-source ./scripts/deploy/04_start_services.sh
+# 升级 pip
+echo "🔧 升级 pip..."
+pip install --upgrade pip
 
-echo "=================================================="
-echo "[Spharx Bootstrap] 初始化完成！"
-echo "下一步: 编辑 $(pwd)/.env 调整配置，然后运行 ./scripts/pipeline/run_2d.sh 测试2D流水线"
+# 安装依赖
+echo "🔧 安装项目依赖..."
+pip install -r requirements.txt
+
+# 复制环境变量模板
+if [ ! -f ".env" ]; then
+    echo "🔧 创建环境变量文件..."
+    cp .env.template .env
+    echo "⚠️  请编辑 .env 文件填写实际配置"
+fi
+
+# 创建数据目录
+echo "🔧 创建数据目录结构..."
+mkdir -p data/{raw,processed,datasets}
+mkdir -p logs
+
+# 初始化日志文件
+echo "🔧 初始化日志文件..."
+touch logs/pipeline.log
+
+# 安装硬件驱动（可选）
+echo ""
+echo "🔧 是否安装硬件驱动？(y/n)"
+read -r install_drivers
+if [[ $install_drivers == "y" ]] || [[ $install_drivers == "Y" ]]; then
+    echo "🔧 安装 RealSense 驱动..."
+    bash hardware/scripts/install_drivers.sh
+fi
+
+# 运行测试
+echo ""
+echo "🧪 是否运行测试？(y/n)"
+read -r run_tests
+if [[ $run_tests == "y" ]] || [[ $run_tests == "Y" ]]; then
+    echo "🧪 运行单元测试..."
+    pytest tests/ -v
+fi
+
+echo ""
+echo "🎉 项目初始化完成！"
+echo ""
+echo "下一步操作："
+echo "1. 编辑 .env 文件配置环境变量"
+echo "2. 激活虚拟环境: source venv/bin/activate"
+echo "3. 启动监控面板: streamlit run dashboard/app.py"
+echo "4. 运行数据处理管道: python -m pipelines.00_ingest.realsense_parser"

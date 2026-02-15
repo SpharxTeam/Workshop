@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  ingest:
+    build: ./pipelines/00_ingest
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    env_file:
+      - .env
+    command: ["--input", "/data/raw/sample.bag", "--output", "/data/processed/scene_001"]
+    networks:
+      - workshop-net
+
+  quality:
+    build: ./pipelines/01_quality
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    env_file:
+      - .env
+    command: ["--input", "/data/processed/scene_001", "--output", "/data/processed/scene_001/quality"]
+    depends_on:
+      - ingest
+    networks:
+      - workshop-net
+
+  enhance:
+    build: ./pipelines/02_enhance
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    env_file:
+      - .env
+    command: ["--input", "/data/processed/scene_001", "--output", "/data/processed/scene_001/enhanced"]
+    depends_on:
+      - quality
+    networks:
+      - workshop-net
+
+  calibrate:
+    build: ./pipelines/03_calibrate
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    env_file:
+      - .env
+    command: ["--input", "/data/processed/scene_001", "--output", "/data/processed/scene_001/calib"]
+    depends_on:
+      - enhance
+    networks:
+      - workshop-net
+
+  pack:
+    build: ./pipelines/04_pack
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    env_file:
+      - .env
+    command: ["--input", "/data/processed/scene_001", "--output", "/data/datasets/scene_001", "--formats", "ros,coco"]
+    depends_on:
+      - calibrate
+    networks:
+      - workshop-net
+
+  # delivery 服务暂不启动，需要 OSS 配置
+  # delivery:
+  #   build: ./pipelines/05_delivery
+  #   volumes:
+  #     - ./data:/data
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - pack
+  #   networks:
+  #     - workshop-net
+
+networks:
+  workshop-net:
+    driver: bridge

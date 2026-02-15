@@ -1,0 +1,58 @@
+# 数据处理管道配置
+
+# 全局配置
+global:
+  data_root: "./data"
+  log_level: "INFO"
+  enable_profiling: true
+
+# 00_ingest 管道配置
+ingest:
+  input_format: "bag"  # bag, ros, direct
+  output_format: "processed"
+  enable_privacy_filter: true
+  privacy_blur_strength: 15
+  max_concurrent_sessions: 3
+
+# 01_quality 管道配置
+quality:
+  blur_threshold: 100.0
+  sync_tolerance_ms: 5.0
+  min_brightness: 30
+  max_brightness: 220
+  enable_auto_exposure_correction: true
+
+# 02_enhance 管道配置
+enhance:
+  yolo_model: "yolov8s.pt"
+  confidence_threshold: 0.5
+  enable_slam: false
+  slam_algorithm: "orb"  # orb, surf, sift
+
+# 03_calibrate 管道配置
+calibrate:
+  chessboard_size: [9, 6]
+  min_calibration_images: 10
+  enable_drift_detection: true
+  drift_threshold_mm: 2.0
+
+# 04_pack 管道配置
+pack:
+  output_format: "coco"  # coco, kitti, ros
+  enable_watermark: true
+  compression_level: 6
+  max_dataset_size_gb: 50
+
+# 05_delivery 管道配置
+delivery:
+  upload_method: "oss"  # oss, s3, local
+  notification_enabled: true
+  retry_attempts: 3
+  chunk_size_mb: 100
+
+# 相机配置
+cameras:
+  default_fps: 30
+  resolution: [640, 480]
+  enable_sync: true
+  sync_mode: "hardware"  # hardware, software
