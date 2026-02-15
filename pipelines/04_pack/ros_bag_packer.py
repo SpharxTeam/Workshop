@@ -10,6 +10,7 @@ import os
 import json
 import shutil
 import hashlib
+import pandas as pd
 from pathlib import Path
 
 import logging
@@ -52,21 +53,31 @@ def pack_scene(input_dir, output_dir, formats=None):
     output_dir = Path(output_dir)
     os.makedirs(output_dir, exist_ok=True)
 
-    # 要打包的文件列表 (源路径, 目标相对路径)
+    # 要打包的文件列表（用于后续 manifest）
     files_to_pack = []
 
-    # 1. 核心文件
-    core_files = [
+    # 1. 必需文件（缺失则终止）
+    required_files = [
         ("rgb.mp4", "rgb.mp4"),
         ("timestamps.csv", "timestamps.csv"),
-        ("imu.csv", "imu.csv"),
-        ("depth", "depth")  # 整个目录
     ]
-    for src_name, dst_name in core_files:
+    for src_name, dst_name in required_files:
+        src_path = input_dir / src_name
+        if not src_path.exists():
+            raise FileNotFoundError(f"场景缺少必需文件: {src_name}")
+        dst_path = output_dir / dst_name
+        copy_file(src_path, dst_path)
+        files_to_pack.append(dst_path)
+
+    # 2. 可选文件（缺失仅记录 info）
+    optional_files = [
+        ("imu.csv", "imu.csv"),
+        ("depth", "depth"),  # 整个目录
+    ]
+    for src_name, dst_name in optional_files:
         src_path = input_dir / src_name
         if src_path.exists():
             if src_path.is_dir():
-                # 复制整个目录
                 dst_path = output_dir / dst_name
                 shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
                 logger.info(f"复制目录 {src_path} -> {dst_path}")
@@ -75,41 +86,41 @@ def pack_scene(input_dir, output_dir, formats=None):
                 copy_file(src_path, dst_path)
                 files_to_pack.append(dst_path)
         else:
-            logger.warning(f"核心文件 {src_name} 不存在，跳过")
+            logger.info(f"可选文件 {src_name} 不存在，跳过")
 
-    # 2. 质检报告
+    # 3. 质检报告
     quality_report = input_dir / "quality" / "quality_report.json"
     if quality_report.exists():
         dst_path = output_dir / "quality_report.json"
         copy_file(quality_report, dst_path)
         files_to_pack.append(dst_path)
     else:
-        logger.warning("质检报告不存在")
+        logger.warning("质检报告不存在")  # 这应该是必须的，但前面 quality 模块应已生成，所以用 warning
 
-    # 3. 增强标注
+    # 4. 增强标注
     enhanced_anno = input_dir / "enhanced" / "annotations.json"
     if enhanced_anno.exists():
         dst_path = output_dir / "annotations.json"
         copy_file(enhanced_anno, dst_path)
         files_to_pack.append(dst_path)
     else:
-        logger.warning("增强标注不存在")
+        logger.warning("增强标注不存在")  # 同样 warning
 
-    # 4. 标定结果
+    # 5. 标定结果
     calib_result = input_dir / "calib" / "intrinsics.json"
     if calib_result.exists():
         dst_path = output_dir / "intrinsics.json"
         copy_file(calib_result, dst_path)
         files_to_pack.append(dst_path)
     else:
-        logger.warning("标定结果不存在")
+        logger.info("标定结果不存在，跳过")  # 标定可能未执行，用 info
 
-    # 5. 根据 formats 生成附加文件（例如 COCO 格式标注已在 enhance 生成，无需重复）
+    # 6. 根据 formats 生成附加文件（预留）
 
     # 生成 manifest.json
     manifest = {
         "scene_id": input_dir.name,
-        "created_at": pd.Timestamp.now().isoformat() if 'pd' in dir() else "2026-02-15T12:00:00",
+        "created_at": pd.Timestamp.now().isoformat(),
         "files": []
     }
 

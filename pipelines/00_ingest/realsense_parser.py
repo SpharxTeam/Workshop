@@ -141,10 +141,10 @@ def parse_bag(bag_path, output_dir):
         )
         logger.info(f"时间戳已保存，共 {len(timestamps)} 条")
     if imu_data:
-        pd.DataFrame(imu_data).to_csv(
-            os.path.join(output_dir, "imu.csv"), index=False
-        )
+        pd.DataFrame(imu_data).to_csv(os.path.join(output_dir, "imu.csv"), index=False)
         logger.info(f"IMU 数据已保存，共 {len(imu_data)} 条")
+    else:
+        logger.info("bag 中未找到 IMU 数据，不生成 imu.csv")
 
     logger.info(f"解析完成：{frame_count} 帧，RGB 视频已保存，深度图已保存到 {depth_dir}")
     return True
