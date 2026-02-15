@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   ingest:
@@ -8,7 +8,7 @@ services:
       - ./logs:/logs
     env_file:
       - .env
-    command: ["--input", "/data/raw/sample.bag", "--output", "/data/processed/scene_001"]
+    command: ["--input", "/data/raw/imu_static.bag", "--output", "/data/processed/scene_001"]
     networks:
       - workshop-net
 
