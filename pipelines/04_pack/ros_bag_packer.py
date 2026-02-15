@@ -1,63 +1,154 @@
 #!/usr/bin/env python3
 """
-打包模块（模拟版）：生成数据集清单和占位文件。
+打包模块：将处理后的场景数据整理成数据集包。
+- 复制 RGB 视频、深度图、IMU、质检报告、标注文件等到数据集目录。
+- 生成 manifest.json，包含每个文件的 SHA256 哈希。
+- 支持按格式输出（如 COCO 格式的标注）。
 """
 import argparse
 import os
 import json
 import shutil
 import hashlib
+from pathlib import Path
+
+import logging
+import sys
+MODULE_NAME = os.path.basename(__file__).replace('.py', '')
+LOG_DIR = "/logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(os.path.join(LOG_DIR, f"{MODULE_NAME}.log"))
+    ]
+)
+logger = logging.getLogger(MODULE_NAME)
 
 def calculate_file_hash(filepath):
+    """计算文件的 SHA256 哈希"""
     sha256 = hashlib.sha256()
     with open(filepath, 'rb') as f:
         for chunk in iter(lambda: f.read(4096), b''):
             sha256.update(chunk)
     return sha256.hexdigest()
 
-def mock_pack(input_dir, output_dir, formats):
+def copy_file(src, dst):
+    """复制文件，自动创建目录"""
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copy2(src, dst)
+    logger.debug(f"复制 {src} -> {dst}")
+
+def pack_scene(input_dir, output_dir, formats=None):
+    """
+    打包场景数据
+    input_dir: 场景目录（由 ingest 生成，并包含 quality/ enhanced/ calib/ 等子目录）
+    output_dir: 数据集输出目录
+    formats: 列表，如 ['ros', 'coco']（目前仅用于占位）
+    """
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
     os.makedirs(output_dir, exist_ok=True)
 
-    if "ros" in formats:
-        ros_dir = os.path.join(output_dir, "ros_bag")
-        os.makedirs(ros_dir, exist_ok=True)
-        with open(os.path.join(ros_dir, "mock_bag.bag"), "w") as f:
-            f.write("mock ros bag content")
+    # 要打包的文件列表 (源路径, 目标相对路径)
+    files_to_pack = []
 
-    if "coco" in formats:
-        # 如果 enhance 模块已生成 annotations.json，直接复制
-        enhanced_anno = os.path.join(input_dir, "enhanced", "annotations.json")
-        if os.path.exists(enhanced_anno):
-            shutil.copy(enhanced_anno, os.path.join(output_dir, "annotations.json"))
+    # 1. 核心文件
+    core_files = [
+        ("rgb.mp4", "rgb.mp4"),
+        ("timestamps.csv", "timestamps.csv"),
+        ("imu.csv", "imu.csv"),
+        ("depth", "depth")  # 整个目录
+    ]
+    for src_name, dst_name in core_files:
+        src_path = input_dir / src_name
+        if src_path.exists():
+            if src_path.is_dir():
+                # 复制整个目录
+                dst_path = output_dir / dst_name
+                shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+                logger.info(f"复制目录 {src_path} -> {dst_path}")
+            else:
+                dst_path = output_dir / dst_name
+                copy_file(src_path, dst_path)
+                files_to_pack.append(dst_path)
         else:
-            with open(os.path.join(output_dir, "annotations.json"), "w") as f:
-                json.dump({"images": [], "annotations": [], "categories": []}, f)
+            logger.warning(f"核心文件 {src_name} 不存在，跳过")
 
-    # 生成 manifest
+    # 2. 质检报告
+    quality_report = input_dir / "quality" / "quality_report.json"
+    if quality_report.exists():
+        dst_path = output_dir / "quality_report.json"
+        copy_file(quality_report, dst_path)
+        files_to_pack.append(dst_path)
+    else:
+        logger.warning("质检报告不存在")
+
+    # 3. 增强标注
+    enhanced_anno = input_dir / "enhanced" / "annotations.json"
+    if enhanced_anno.exists():
+        dst_path = output_dir / "annotations.json"
+        copy_file(enhanced_anno, dst_path)
+        files_to_pack.append(dst_path)
+    else:
+        logger.warning("增强标注不存在")
+
+    # 4. 标定结果
+    calib_result = input_dir / "calib" / "intrinsics.json"
+    if calib_result.exists():
+        dst_path = output_dir / "intrinsics.json"
+        copy_file(calib_result, dst_path)
+        files_to_pack.append(dst_path)
+    else:
+        logger.warning("标定结果不存在")
+
+    # 5. 根据 formats 生成附加文件（例如 COCO 格式标注已在 enhance 生成，无需重复）
+
+    # 生成 manifest.json
     manifest = {
-        "scene_id": os.path.basename(input_dir),
-        "created_at": "2026-02-15T12:00:00",
+        "scene_id": input_dir.name,
+        "created_at": pd.Timestamp.now().isoformat() if 'pd' in dir() else "2026-02-15T12:00:00",
         "files": []
     }
+
+    # 遍历输出目录中所有文件，计算哈希
     for root, dirs, files in os.walk(output_dir):
         for file in files:
-            relpath = os.path.relpath(os.path.join(root, file), output_dir)
+            full_path = os.path.join(root, file)
+            rel_path = os.path.relpath(full_path, output_dir)
+            file_size = os.path.getsize(full_path)
+            file_hash = calculate_file_hash(full_path)
             manifest["files"].append({
-                "path": relpath,
-                "size": os.path.getsize(os.path.join(root, file)),
-                "sha256": calculate_file_hash(os.path.join(root, file))
+                "path": rel_path,
+                "size": file_size,
+                "sha256": file_hash
             })
-    with open(os.path.join(output_dir, "manifest.json"), "w") as f:
-        json.dump(manifest, f, indent=2)
 
-    print(f"数据集已打包到 {output_dir}")
+    manifest_path = output_dir / "manifest.json"
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=2)
+    logger.info(f"manifest 已生成: {manifest_path}")
+
+    logger.info(f"数据集打包完成，共 {len(manifest['files'])} 个文件")
+    return True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="输入场景目录")
     parser.add_argument("--output", required=True, help="输出数据集目录")
-    parser.add_argument("--formats", default="ros,coco", help="格式列表，逗号分隔")
+    parser.add_argument("--formats", default="ros,coco", help="格式列表，逗号分隔（暂仅用于记录）")
     args = parser.parse_args()
 
+    if not os.path.isdir(args.input):
+        logger.error(f"输入目录不存在: {args.input}")
+        exit(1)
+
     formats = args.formats.split(",")
-    mock_pack(args.input, args.output, formats)
+    try:
+        success = pack_scene(args.input, args.output, formats)
+        exit(0 if success else 1)
+    except Exception as e:
+        logger.critical(f"打包失败: {e}", exc_info=True)
+        exit(1)

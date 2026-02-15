@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 增强模块：使用 YOLOv8 对视频进行目标检测，生成 COCO 格式标注。
+增强版：统一日志、异常处理。
 """
 import argparse
 import os
@@ -9,19 +10,39 @@ import json
 import numpy as np
 from ultralytics import YOLO
 
+import logging
+import sys
+MODULE_NAME = os.path.basename(__file__).replace('.py', '')
+LOG_DIR = "/logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(os.path.join(LOG_DIR, f"{MODULE_NAME}.log"))
+    ]
+)
+logger = logging.getLogger(MODULE_NAME)
+
 def process_video(video_path, output_dir, model_path='yolov8n.pt', conf_thres=0.25):
     """对视频逐帧进行目标检测，保存 COCO 格式标注"""
-    model = YOLO(model_path)
+    logger.info(f"加载模型 {model_path}...")
+    try:
+        model = YOLO(model_path)
+    except Exception as e:
+        logger.error(f"模型加载失败: {e}")
+        raise
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print(f"无法打开视频: {video_path}")
-        return False
+        raise IOError(f"无法打开视频: {video_path}")
 
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    logger.info(f"视频信息: {width}x{height}, {fps} fps, 总帧数 {total_frames}")
 
     coco_output = {
         "images": [],
@@ -29,7 +50,7 @@ def process_video(video_path, output_dir, model_path='yolov8n.pt', conf_thres=0.
         "categories": []
     }
 
-    # 获取类别名称（COCO 标准80类）
+    # 获取类别名称
     categories = []
     for i, (k, v) in enumerate(model.names.items()):
         categories.append({"id": i, "name": v, "supercategory": "object"})
@@ -75,16 +96,17 @@ def process_video(video_path, output_dir, model_path='yolov8n.pt', conf_thres=0.
 
         frame_id += 1
         if frame_id % 100 == 0:
-            print(f"已处理 {frame_id}/{total_frames} 帧")
+            logger.info(f"已处理 {frame_id}/{total_frames} 帧")
 
     cap.release()
+    logger.info(f"处理完成，共检测到 {annotation_id} 个目标")
 
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "annotations.json")
     with open(output_path, "w") as f:
         json.dump(coco_output, f, indent=2)
 
-    print(f"检测完成，共处理 {frame_id} 帧，生成标注 {annotation_id} 个")
+    logger.info(f"标注文件已保存到 {output_path}")
     return True
 
 if __name__ == "__main__":
@@ -96,8 +118,12 @@ if __name__ == "__main__":
 
     video_path = os.path.join(args.input, "rgb.mp4")
     if not os.path.exists(video_path):
-        print(f"视频文件不存在: {video_path}")
+        logger.error(f"视频文件不存在: {video_path}")
         exit(1)
 
-    success = process_video(video_path, args.output, conf_thres=args.conf)
-    exit(0 if success else 1)
+    try:
+        success = process_video(video_path, args.output, conf_thres=args.conf)
+        exit(0 if success else 1)
+    except Exception as e:
+        logger.critical(f"处理失败: {e}", exc_info=True)
+        exit(1)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 标定模块：基于棋盘格图像进行相机内参标定。
+增强版：添加检测标志，增加调试输出。
 """
 import argparse
 import os
@@ -8,6 +9,11 @@ import cv2
 import numpy as np
 import json
 import glob
+import logging
+
+# 配置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def calibrate_camera(image_dir, chessboard_size=(9,6), square_size=0.025, output_dir=None):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -20,28 +26,39 @@ def calibrate_camera(image_dir, chessboard_size=(9,6), square_size=0.025, output
     image_paths = glob.glob(os.path.join(image_dir, "*.jpg")) + glob.glob(os.path.join(image_dir, "*.png"))
 
     if len(image_paths) == 0:
-        print(f"在 {image_dir} 中未找到图像文件")
+        logger.error(f"在 {image_dir} 中未找到图像文件")
         return False
+
+    # 检测标志
+    flags = cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_NORMALIZE_IMAGE + cv2.CALIB_CB_FAST_CHECK
 
     valid_images = []
     for fname in image_paths:
         img = cv2.imread(fname)
+        if img is None:
+            logger.warning(f"无法读取图像: {fname}")
+            continue
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        ret, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
+        ret, corners = cv2.findChessboardCorners(gray, chessboard_size, None, flags=flags)
         if ret:
             objpoints.append(objp)
             corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
             imgpoints.append(corners2)
             valid_images.append(fname)
+            logger.info(f"成功检测: {fname}")
+        else:
+            logger.warning(f"未检测到棋盘格: {fname}")
 
     if len(objpoints) == 0:
-        print("没有有效的标定图像")
+        logger.error("没有有效的标定图像")
         return False
 
+    # 标定
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
         objpoints, imgpoints, gray.shape[::-1], None, None
     )
 
+    # 计算重投影误差
     mean_error = 0
     for i in range(len(objpoints)):
         imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
@@ -65,8 +82,8 @@ def calibrate_camera(image_dir, chessboard_size=(9,6), square_size=0.025, output
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
 
-    print(f"标定完成，重投影误差: {reproj_error:.4f} 像素")
-    print(f"结果已保存到 {output_path}")
+    logger.info(f"标定完成，重投影误差: {reproj_error:.4f} 像素")
+    logger.info(f"结果已保存到 {output_path}")
     return True
 
 if __name__ == "__main__":
@@ -77,6 +94,14 @@ if __name__ == "__main__":
     parser.add_argument("--square_size", type=float, default=0.025, help="方格尺寸（米）")
     args = parser.parse_args()
 
+    if not os.path.isdir(args.input):
+        logger.error(f"输入目录不存在: {args.input}")
+        exit(1)
+
     chessboard = tuple(map(int, args.chessboard.split(',')))
-    calibrate_camera(args.input, chessboard_size=chessboard,
-                     square_size=args.square_size, output_dir=args.output)
+    try:
+        calibrate_camera(args.input, chessboard_size=chessboard,
+                         square_size=args.square_size, output_dir=args.output)
+    except Exception as e:
+        logger.critical(f"标定失败: {e}", exc_info=True)
+        exit(1)
