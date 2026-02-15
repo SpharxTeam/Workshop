@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 标定模块：基于棋盘格图像进行相机内参标定。
-增强版：添加检测标志，增加调试输出。
+增强版：支持配置文件、统一日志、异常处理。
 """
 import argparse
 import os
@@ -9,13 +9,30 @@ import cv2
 import numpy as np
 import json
 import glob
+
+# 本地配置加载模块
+import config_loader
+
 import logging
+import sys
+MODULE_NAME = os.path.basename(__file__).replace('.py', '')
+LOG_DIR = "/logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(os.path.join(LOG_DIR, f"{MODULE_NAME}.log"))
+    ]
+)
+logger = logging.getLogger(MODULE_NAME)
 
-# 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-def calibrate_camera(image_dir, chessboard_size=(9,6), square_size=0.025, output_dir=None):
+def calibrate_camera(image_dir, chessboard_size=(9,6), square_size=0.025, output_dir=None, config=None):
+    """
+    标定相机，chessboard_size: 内角点数 (宽, 高)
+    config: 可选，用于从配置读取参数（已通过函数参数传递，不再使用）
+    """
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     objp = np.zeros((chessboard_size[0] * chessboard_size[1], 3), np.float32)
     objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
@@ -90,18 +107,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="标定图像目录")
     parser.add_argument("--output", required=True, help="输出目录")
-    parser.add_argument("--chessboard", default="9,6", help="棋盘格内角点，如 9,6")
-    parser.add_argument("--square_size", type=float, default=0.025, help="方格尺寸（米）")
+    parser.add_argument("--chessboard", help="棋盘格内角点，如 9,6")
+    parser.add_argument("--square_size", type=float, help="方格尺寸（米）")
+    parser.add_argument("--config", help="配置文件路径")
     args = parser.parse_args()
 
     if not os.path.isdir(args.input):
         logger.error(f"输入目录不存在: {args.input}")
         exit(1)
 
-    chessboard = tuple(map(int, args.chessboard.split(',')))
+    config = config_loader.load_config(args.config, "calibrate")
+
+    # 命令行参数优先
+    chessboard = args.chessboard if args.chessboard else config.get('chessboard', '9,6')
+    if isinstance(chessboard, str):
+        chessboard = tuple(map(int, chessboard.split(',')))
+    square_size = args.square_size if args.square_size is not None else config.get('square_size', 0.025)
+
     try:
         calibrate_camera(args.input, chessboard_size=chessboard,
-                         square_size=args.square_size, output_dir=args.output)
+                         square_size=square_size, output_dir=args.output, config=config)
     except Exception as e:
         logger.critical(f"标定失败: {e}", exc_info=True)
         exit(1)

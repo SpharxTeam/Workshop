@@ -4,6 +4,7 @@
 - 复制 RGB 视频、深度图、IMU、质检报告、标注文件等到数据集目录。
 - 生成 manifest.json，包含每个文件的 SHA256 哈希。
 - 支持按格式输出（如 COCO 格式的标注）。
+增强版：统一日志、异常处理、支持配置文件、区分必需/可选文件。
 """
 import argparse
 import os
@@ -12,6 +13,9 @@ import shutil
 import hashlib
 import pandas as pd
 from pathlib import Path
+
+# 本地配置加载模块
+import config_loader
 
 import logging
 import sys
@@ -42,38 +46,48 @@ def copy_file(src, dst):
     shutil.copy2(src, dst)
     logger.debug(f"复制 {src} -> {dst}")
 
-def pack_scene(input_dir, output_dir, formats=None):
+def pack_scene(input_dir, output_dir, formats=None, config=None):
     """
     打包场景数据
     input_dir: 场景目录（由 ingest 生成，并包含 quality/ enhanced/ calib/ 等子目录）
     output_dir: 数据集输出目录
     formats: 列表，如 ['ros', 'coco']（目前仅用于占位）
+    config: 配置字典（可选）
     """
+    if config is None:
+        config = {}
+    if formats is None and 'formats' in config:
+        formats = config['formats']
+    if formats is None:
+        formats = ['ros', 'coco']
+
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
     os.makedirs(output_dir, exist_ok=True)
 
-    # 要打包的文件列表（用于后续 manifest）
-    files_to_pack = []
-
-    # 1. 必需文件（缺失则终止）
+    # 必需文件列表（缺失则终止）
     required_files = [
         ("rgb.mp4", "rgb.mp4"),
-        ("timestamps.csv", "timestamps.csv"),
+        ("timestamps.csv", "timestamps.csv")
     ]
+    # 可选文件列表（缺失仅记录 info）
+    optional_files = [
+        ("imu.csv", "imu.csv"),
+        ("depth", "depth"),           # 整个目录
+        ("quality/quality_report.json", "quality_report.json"),
+        ("enhanced/annotations.json", "annotations.json"),
+        ("calib/intrinsics.json", "intrinsics.json")
+    ]
+
+    # 检查必需文件
     for src_name, dst_name in required_files:
         src_path = input_dir / src_name
         if not src_path.exists():
-            raise FileNotFoundError(f"场景缺少必需文件: {src_name}")
+            raise FileNotFoundError(f"必需文件缺失: {src_name}，打包终止")
         dst_path = output_dir / dst_name
         copy_file(src_path, dst_path)
-        files_to_pack.append(dst_path)
 
-    # 2. 可选文件（缺失仅记录 info）
-    optional_files = [
-        ("imu.csv", "imu.csv"),
-        ("depth", "depth"),  # 整个目录
-    ]
+    # 处理可选文件
     for src_name, dst_name in optional_files:
         src_path = input_dir / src_name
         if src_path.exists():
@@ -84,38 +98,8 @@ def pack_scene(input_dir, output_dir, formats=None):
             else:
                 dst_path = output_dir / dst_name
                 copy_file(src_path, dst_path)
-                files_to_pack.append(dst_path)
         else:
             logger.info(f"可选文件 {src_name} 不存在，跳过")
-
-    # 3. 质检报告
-    quality_report = input_dir / "quality" / "quality_report.json"
-    if quality_report.exists():
-        dst_path = output_dir / "quality_report.json"
-        copy_file(quality_report, dst_path)
-        files_to_pack.append(dst_path)
-    else:
-        logger.warning("质检报告不存在")  # 这应该是必须的，但前面 quality 模块应已生成，所以用 warning
-
-    # 4. 增强标注
-    enhanced_anno = input_dir / "enhanced" / "annotations.json"
-    if enhanced_anno.exists():
-        dst_path = output_dir / "annotations.json"
-        copy_file(enhanced_anno, dst_path)
-        files_to_pack.append(dst_path)
-    else:
-        logger.warning("增强标注不存在")  # 同样 warning
-
-    # 5. 标定结果
-    calib_result = input_dir / "calib" / "intrinsics.json"
-    if calib_result.exists():
-        dst_path = output_dir / "intrinsics.json"
-        copy_file(calib_result, dst_path)
-        files_to_pack.append(dst_path)
-    else:
-        logger.info("标定结果不存在，跳过")  # 标定可能未执行，用 info
-
-    # 6. 根据 formats 生成附加文件（预留）
 
     # 生成 manifest.json
     manifest = {
@@ -149,16 +133,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="输入场景目录")
     parser.add_argument("--output", required=True, help="输出数据集目录")
-    parser.add_argument("--formats", default="ros,coco", help="格式列表，逗号分隔（暂仅用于记录）")
+    parser.add_argument("--formats", help="格式列表，逗号分隔")
+    parser.add_argument("--config", help="配置文件路径")
     args = parser.parse_args()
 
     if not os.path.isdir(args.input):
         logger.error(f"输入目录不存在: {args.input}")
         exit(1)
 
-    formats = args.formats.split(",")
+    config = config_loader.load_config(args.config, "pack")
+    formats = args.formats.split(',') if args.formats else config.get('formats', ['ros', 'coco'])
+
     try:
-        success = pack_scene(args.input, args.output, formats)
+        success = pack_scene(args.input, args.output, formats, config=config)
         exit(0 if success else 1)
     except Exception as e:
         logger.critical(f"打包失败: {e}", exc_info=True)

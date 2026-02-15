@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 增强模块：使用 YOLOv8 对视频进行目标检测，生成 COCO 格式标注。
-增强版：统一日志、异常处理。
+增强版：统一日志、异常处理、支持配置文件、优先使用本地预下载模型。
 """
 import argparse
 import os
@@ -10,8 +10,12 @@ import json
 import numpy as np
 from ultralytics import YOLO
 
+# 本地配置加载模块
+import config_loader
+
 import logging
 import sys
+
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
 LOG_DIR = "/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -25,8 +29,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(MODULE_NAME)
 
-def process_video(video_path, output_dir, model_path='yolov8n.pt', conf_thres=0.25):
-    """对视频逐帧进行目标检测，保存 COCO 格式标注"""
+def process_video(video_path, output_dir, config=None, **kwargs):
+    """
+    对视频逐帧进行目标检测，保存 COCO 格式标注
+    config: 模块配置字典
+    kwargs: 命令行参数覆盖（conf, model）
+    """
+    if config is None:
+        config = {}
+    conf_thres = kwargs.get('conf', config.get('conf_threshold', 0.25))
+    model_path = kwargs.get('model', config.get('model_path', 'yolov8n.pt'))
+
+    # 优先使用本地预下载的模型（位于 /app/models/）
+    if not os.path.isabs(model_path) and not os.path.exists(model_path):
+        local_model = os.path.join('/app/models', os.path.basename(model_path))
+        if os.path.exists(local_model):
+            model_path = local_model
+            logger.info(f"使用本地预下载模型: {model_path}")
+
     logger.info(f"加载模型 {model_path}...")
     try:
         model = YOLO(model_path)
@@ -113,16 +133,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="场景目录（包含rgb.mp4）")
     parser.add_argument("--output", required=True, help="输出目录")
-    parser.add_argument("--conf", type=float, default=0.25, help="置信度阈值")
+    parser.add_argument("--conf", type=float, help="置信度阈值")
+    parser.add_argument("--model", help="模型路径")
+    parser.add_argument("--config", help="配置文件路径")
     args = parser.parse_args()
 
+    config = config_loader.load_config(args.config, "enhance")
     video_path = os.path.join(args.input, "rgb.mp4")
     if not os.path.exists(video_path):
         logger.error(f"视频文件不存在: {video_path}")
         exit(1)
 
+    kwargs = {}
+    if args.conf is not None:
+        kwargs['conf'] = args.conf
+    if args.model is not None:
+        kwargs['model'] = args.model
+
     try:
-        success = process_video(video_path, args.output, conf_thres=args.conf)
+        success = process_video(video_path, args.output, config=config, **kwargs)
         exit(0 if success else 1)
     except Exception as e:
         logger.critical(f"处理失败: {e}", exc_info=True)

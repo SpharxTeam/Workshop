@@ -1,58 +1,32 @@
-# 数据处理管道配置
+# Spharx Workshop 流水线配置文件
+# 所有模块的默认参数在此定义，可通过命令行参数覆盖
 
 # 全局配置
 global:
-  data_root: "./data"
-  log_level: "INFO"
-  enable_profiling: true
+  data_root: /data
+  log_dir: /logs
 
-# 00_ingest 管道配置
+# 导入模块 (ingest)
 ingest:
-  input_format: "bag"  # bag, ros, direct
-  output_format: "processed"
-  enable_privacy_filter: true
-  privacy_blur_strength: 15
-  max_concurrent_sessions: 3
+  # 无特殊参数，输入输出通过命令行传递
 
-# 01_quality 管道配置
+# 质检模块 (quality)
 quality:
-  blur_threshold: 100.0
-  sync_tolerance_ms: 5.0
-  min_brightness: 30
-  max_brightness: 220
-  enable_auto_exposure_correction: true
+  blur_threshold: 100          # 模糊检测阈值（Laplacian方差）
+  over_threshold: 240           # 过曝阈值（平均亮度）
+  under_threshold: 30           # 欠曝阈值
+  expected_fps: 30              # 期望帧率（用于丢帧检测）
 
-# 02_enhance 管道配置
+# 增强模块 (enhance)
 enhance:
-  yolo_model: "yolov8s.pt"
-  confidence_threshold: 0.5
-  enable_slam: false
-  slam_algorithm: "orb"  # orb, surf, sift
+  conf_threshold: 0.25          # YOLO 置信度阈值
+  model_path: "yolov8n.pt"      # 模型文件名（运行时下载或挂载）
 
-# 03_calibrate 管道配置
+# 标定模块 (calibrate)
 calibrate:
-  chessboard_size: [9, 6]
-  min_calibration_images: 10
-  enable_drift_detection: true
-  drift_threshold_mm: 2.0
+  chessboard: [9, 6]            # 棋盘格内角点数 (宽, 高)
+  square_size: 0.025            # 方格尺寸（米）
 
-# 04_pack 管道配置
+# 打包模块 (pack)
 pack:
-  output_format: "coco"  # coco, kitti, ros
-  enable_watermark: true
-  compression_level: 6
-  max_dataset_size_gb: 50
-
-# 05_delivery 管道配置
-delivery:
-  upload_method: "oss"  # oss, s3, local
-  notification_enabled: true
-  retry_attempts: 3
-  chunk_size_mb: 100
-
-# 相机配置
-cameras:
-  default_fps: 30
-  resolution: [640, 480]
-  enable_sync: true
-  sync_mode: "hardware"  # hardware, software
+  formats: ["ros", "coco"]      # 输出格式（目前仅用于标识）

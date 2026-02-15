@@ -1,4 +1,5 @@
-
+# docker-compose.yml
+#容器编排
 
 services:
   ingest:
@@ -6,9 +7,12 @@ services:
     volumes:
       - ./data:/data
       - ./logs:/logs
+      - ./configs:/configs:ro
+    environment:
+      - CONFIG_PATH=/configs/pipeline_config.yaml
     env_file:
       - .env
-    command: ["--input", "/data/raw/imu_static.bag", "--output", "/data/processed/scene_001"]
+    command: ["--input", "/data/raw/sample.bag", "--output", "/data/processed/scene_001"]
     networks:
       - workshop-net
 
@@ -17,6 +21,9 @@ services:
     volumes:
       - ./data:/data
       - ./logs:/logs
+      - ./configs:/configs:ro
+    environment:
+      - CONFIG_PATH=/configs/pipeline_config.yaml
     env_file:
       - .env
     command: ["--input", "/data/processed/scene_001", "--output", "/data/processed/scene_001/quality"]
@@ -30,6 +37,9 @@ services:
     volumes:
       - ./data:/data
       - ./logs:/logs
+      - ./configs:/configs:ro
+    environment:
+      - CONFIG_PATH=/configs/pipeline_config.yaml
     env_file:
       - .env
     command: ["--input", "/data/processed/scene_001", "--output", "/data/processed/scene_001/enhanced"]
@@ -43,9 +53,13 @@ services:
     volumes:
       - ./data:/data
       - ./logs:/logs
+      - ./configs:/configs:ro
+      - ./data/calibration_images:/data/calibration_images:ro
+    environment:
+      - CONFIG_PATH=/configs/pipeline_config.yaml
     env_file:
       - .env
-    command: ["--input", "/data/processed/scene_001", "--output", "/data/processed/scene_001/calib"]
+    command: ["--input", "/data/calibration_images", "--output", "/data/processed/scene_001/calib"]
     depends_on:
       - enhance
     networks:
@@ -56,6 +70,9 @@ services:
     volumes:
       - ./data:/data
       - ./logs:/logs
+      - ./configs:/configs:ro
+    environment:
+      - CONFIG_PATH=/configs/pipeline_config.yaml
     env_file:
       - .env
     command: ["--input", "/data/processed/scene_001", "--output", "/data/datasets/scene_001", "--formats", "ros,coco"]
@@ -63,6 +80,7 @@ services:
       - calibrate
     networks:
       - workshop-net
+
 
   # delivery 服务暂不启动，需要 OSS 配置
   # delivery:

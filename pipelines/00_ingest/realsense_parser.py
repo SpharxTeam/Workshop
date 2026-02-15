@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 数据导入模块：真实解析 .bag 文件，提取 RGB 视频、深度图和 IMU 数据。
-增强版：统一日志、异常处理。
+增强版：统一日志、异常处理、支持配置文件。
 """
 import argparse
 import os
@@ -11,6 +11,9 @@ import cv2
 import numpy as np
 import pandas as pd
 import pyrealsense2 as rs
+
+# 本地配置加载模块（需在同一目录）
+import config_loader
 
 # 日志配置
 import logging
@@ -141,7 +144,9 @@ def parse_bag(bag_path, output_dir):
         )
         logger.info(f"时间戳已保存，共 {len(timestamps)} 条")
     if imu_data:
-        pd.DataFrame(imu_data).to_csv(os.path.join(output_dir, "imu.csv"), index=False)
+        pd.DataFrame(imu_data).to_csv(
+            os.path.join(output_dir, "imu.csv"), index=False
+        )
         logger.info(f"IMU 数据已保存，共 {len(imu_data)} 条")
     else:
         logger.info("bag 中未找到 IMU 数据，不生成 imu.csv")
@@ -150,10 +155,14 @@ def parse_bag(bag_path, output_dir):
     return True
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="解析 RealSense bag 文件")
     parser.add_argument("--input", required=True, help="输入bag文件路径")
     parser.add_argument("--output", required=True, help="输出目录")
+    parser.add_argument("--config", help="配置文件路径（可选）")
     args = parser.parse_args()
+
+    # 加载配置（ingest 无配置项，仅为保持接口一致）
+    config = config_loader.load_config(args.config, "ingest")
 
     logger.info(f"Python 版本: {sys.version}")
     logger.info(f"pyrealsense2 版本: {rs.__version__ if hasattr(rs, '__version__') else 'unknown'}")
