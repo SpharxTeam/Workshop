@@ -190,7 +190,7 @@ touch data/raw/sample.bag
 ---
 
 ## 📁 项目结构
-
+```
 .
 ├── .env.template                # 环境变量模板
 ├── .gitignore                   # Git忽略规则
@@ -218,7 +218,7 @@ touch data/raw/sample.bag
 ├── tests/                       # 单元测试（预留）
 ├── data/                        # 数据目录（git忽略）
 └── logs/                        # 日志目录（git忽略）
-
+```
 ---
 
 ## 🗺️ 路线图
