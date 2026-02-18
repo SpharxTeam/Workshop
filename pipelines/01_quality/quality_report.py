@@ -62,7 +62,7 @@ def check_dropped_frames(timestamp_csv, expected_fps=30):
 def generate_quality_report(scene_dir, output_dir, config=None, **kwargs):
     """
     生成质检报告
-    config: 从配置文件加载的模块配置字典
+    config: 从配置文件加载的模块配置字典（可能为整个配置，也可能为 quality 子节）
     kwargs: 命令行参数覆盖
     """
     video_path = os.path.join(scene_dir, "rgb.mp4")
@@ -76,10 +76,19 @@ def generate_quality_report(scene_dir, output_dir, config=None, **kwargs):
     # 从配置获取默认值，命令行参数优先
     if config is None:
         config = {}
-    blur_threshold = kwargs.get('blur_threshold', config.get('blur_threshold', 100))
-    over_threshold = kwargs.get('over_threshold', config.get('over_threshold', 240))
-    under_threshold = kwargs.get('under_threshold', config.get('under_threshold', 30))
-    expected_fps = kwargs.get('expected_fps', config.get('expected_fps', 30))
+
+    # 兼容新旧配置结构：
+    # - 如果 config 中存在 'hardware' 键，说明是分层配置（新）
+    # - 否则，整个 config 就是硬件层配置（旧）
+    if 'hardware' in config:
+        hardware_config = config.get('hardware', {})
+    else:
+        hardware_config = config
+
+    blur_threshold = kwargs.get('blur_threshold', hardware_config.get('blur_threshold', 100))
+    over_threshold = kwargs.get('over_threshold', hardware_config.get('over_threshold', 240))
+    under_threshold = kwargs.get('under_threshold', hardware_config.get('under_threshold', 30))
+    expected_fps = kwargs.get('expected_fps', hardware_config.get('expected_fps', 30))
 
     logger.info("开始模糊检测...")
     blurry_frames, blur_scores = detect_blurry_frames(video_path, threshold=blur_threshold)
@@ -143,7 +152,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", help="配置文件路径")
     args = parser.parse_args()
 
-    # 加载配置
+    # 加载配置（config_loader.load_config 可能返回整个配置或 quality 子节）
     config = config_loader.load_config(args.config, "quality")
 
     # 构建参数字典，优先使用命令行参数
