@@ -95,12 +95,28 @@ def calibrate_camera(image_dir, chessboard_size=(9,6), square_size=0.025, output
     if output_dir is None:
         output_dir = os.getcwd()
     os.makedirs(output_dir, exist_ok=True)
+
+    # 保存标准标定结果
     output_path = os.path.join(output_dir, "intrinsics.json")
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
+    logger.info(f"标定结果已保存到 {output_path}")
+
+    # 生成详细的标定报告（增强）
+    report = {
+        "reprojection_error": reproj_error,
+        "camera_matrix": mtx.tolist(),
+        "dist_coeffs": dist.tolist(),
+        "image_count": len(objpoints),
+        "chessboard_size": list(chessboard_size),
+        "square_size": square_size
+    }
+    report_path = os.path.join(output_dir, "calibration_report.json")
+    with open(report_path, "w") as f:
+        json.dump(report, f, indent=2)
+    logger.info(f"标定报告已保存至 {report_path}")
 
     logger.info(f"标定完成，重投影误差: {reproj_error:.4f} 像素")
-    logger.info(f"结果已保存到 {output_path}")
     return True
 
 if __name__ == "__main__":
