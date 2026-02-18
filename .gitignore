@@ -114,10 +114,11 @@ cython_debug/
 
 # Docker
 .dockerignore
-Dockerfile*
+Dockerfile.*          # 忽略带后缀的 Dockerfile（如 Dockerfile.dev）
 docker-compose*.yml
-!docker-compose.yml      # 保留主编排文件
+!docker-compose.yml
 !docker-compose.pipeline.yml
+!Dockerfile           # 明确不忽略主 Dockerfile
 
 # Data directories (local)
 /data/*
