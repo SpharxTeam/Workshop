@@ -12,11 +12,13 @@ ingest:
 
 # 质检模块 (quality)
 quality:
-  blur_threshold: 100          # 模糊检测阈值（Laplacian方差）
-  over_threshold: 240           # 过曝阈值（平均亮度）
-  under_threshold: 30           # 欠曝阈值
-  expected_fps: 30              # 期望帧率（用于丢帧检测）
-  # 质检模块配置
+  # 基础硬件层（当前实现）
+  hardware:
+    blur_threshold: 100
+    over_threshold: 240
+    under_threshold: 30
+    expected_fps: 30
+
   # 预留分层（借鉴触觉金字塔）
   tiers:
     hardware:      # Tier 5: 静态属性（已实现）
