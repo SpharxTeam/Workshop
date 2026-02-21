@@ -59,7 +59,7 @@ echo "输入 bag: $BAG_PATH"
 echo "配置文件: $CONFIG_PATH"
 echo "========================================="
 
-cd ~/workshop
+# cd ~/workshop   # 已注释，使用当前目录
 
 # 1. Ingest
 echo "[1/5] 运行 ingest ..."
