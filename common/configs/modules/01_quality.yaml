@@ -1,0 +1,17 @@
+# 01_quality 模块配置  
+hardware:
+  load_config('quality_thresholds.yaml')
+
+motion_semantic:
+  enabled: false
+  min_action_duration: 3
+  required_actions: ["grasp", "push", "rotate"]
+
+task_completion:
+  enabled: false
+  success_criteria: {}
+
+quality_check:
+  enable_real_time: true
+  save_reports: true
+  report_format: "json"

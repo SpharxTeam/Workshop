@@ -1,23 +1,27 @@
-FROM python:3.10-slim AS builder
-WORKDIR /build
-COPY requirements.txt .
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    libusb-1.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
-    pip install --no-cache-dir --user --default-timeout=200 -r requirements.txt
+# ============================================================================
+# workshop 数据导入模块 (00_ingest)
+# 基于 workshop-base，实现 RealSense bag 文件解析
+# ============================================================================
 
-FROM python:3.10-slim
-WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    libusb-1.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
-COPY config_loader.py .
-COPY *.py .
-ENTRYPOINT ["python", "realsense_parser.py"]
+FROM workshop-base:latest
+
+ENV PYTHONPATH=/app/common/scripts
+
+# 复制公共资源
+COPY common/scripts /app/common/scripts
+COPY common/configs /app/common/configs
+
+# 复制模块代码
+COPY pipelines/00_ingest /app/module
+
+# 复制离线依赖包
+COPY partdata/deps /app/deps
+
+# 离线安装依赖
+RUN pip install --no-cache-dir --no-index --find-links /app/deps -r /app/module/requirements.txt
+
+# 切换非 root 用户
+USER appuser
+
+WORKDIR /app/module
+ENTRYPOINT ["python", "runner.py"]

@@ -1,0 +1,17 @@
+# 02_enhance 模块配置
+yolo:
+  model: "yolov8n.pt"
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  classes: null  # null表示检测所有类别
+
+enhancement:
+  enable_denoising: true
+  noise_reduction_strength: 0.3
+  contrast_adjustment: 1.2
+  brightness_adjustment: 0.1
+
+output:
+  save_annotated_images: true
+  annotation_format: "coco"
+  include_confidence_scores: true

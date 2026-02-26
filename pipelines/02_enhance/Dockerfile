@@ -1,22 +1,18 @@
-# pipelines/02_enhance/Dockerfile
-FROM python:3.10-slim
-WORKDIR /app
+# ============================================================================
+# workshop 增强模块 (02_enhance)
+# 基于 workshop-base，使用 YOLOv8 进行目标检测，生成 COCO 标注
+# ============================================================================
 
-# 安装运行时系统依赖（包括 curl，供 Ultralytics 下载使用）
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    git \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+FROM workshop-base:latest
 
-# 配置 pip 使用清华源加速
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PYTHONPATH=/app/common/scripts
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY common/scripts /app/common/scripts
+COPY common/configs /app/common/configs
+COPY pipelines/02_enhance /app/module
+COPY partdata/deps /app/deps
+RUN pip install --no-cache-dir --no-index --find-links /app/deps -r /app/module/requirements.txt
 
-COPY config_loader.py .
-COPY *.py .
-
-ENTRYPOINT ["python", "yolo_annotator.py"]
+USER appuser
+WORKDIR /app/module
+ENTRYPOINT ["python", "runner.py"]

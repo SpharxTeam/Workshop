@@ -1,99 +1,139 @@
-# docker-compose.yml
-#容器编排
-
-services:
-  ingest:
-    build: ./pipelines/00_ingest
-    volumes:
-      - ./data:/data
-      - ./logs:/logs
-      - ./configs:/configs:ro
-    environment:
-      - CONFIG_PATH=/configs/pipeline_config.yaml
-    env_file:
-      - .env
-    command: ["--input", "/data/raw/sample.bag", "--output", "/data/processed/scene_001"]
-    networks:
-      - workshop-net
-
-  quality:
-    build: ./pipelines/01_quality
-    volumes:
-      - ./data:/data
-      - ./logs:/logs
-      - ./configs:/configs:ro
-    environment:
-      - CONFIG_PATH=/configs/pipeline_config.yaml
-    env_file:
-      - .env
-    command: ["--input", "/data/processed/scene_001", "--output", "/data/processed/scene_001/quality"]
-    depends_on:
-      - ingest
-    networks:
-      - workshop-net
-
-  enhance:
-    build: ./pipelines/02_enhance
-    volumes:
-      - ./data:/data
-      - ./logs:/logs
-      - ./configs:/configs:ro
-    environment:
-      - CONFIG_PATH=/configs/pipeline_config.yaml
-    env_file:
-      - .env
-    command: ["--input", "/data/processed/scene_001", "--output", "/data/processed/scene_001/enhanced"]
-    depends_on:
-      - quality
-    networks:
-      - workshop-net
-
-  calibrate:
-    build: ./pipelines/03_calibrate
-    volumes:
-      - ./data:/data
-      - ./logs:/logs
-      - ./configs:/configs:ro
-      - ./data/calibration_images:/data/calibration_images:ro
-    environment:
-      - CONFIG_PATH=/configs/pipeline_config.yaml
-    env_file:
-      - .env
-    command: ["--input", "/data/calibration_images", "--output", "/data/processed/scene_001/calib"]
-    depends_on:
-      - enhance
-    networks:
-      - workshop-net
-
-  pack:
-    build: ./pipelines/04_pack
-    volumes:
-      - ./data:/data
-      - ./logs:/logs
-      - ./configs:/configs:ro
-    environment:
-      - CONFIG_PATH=/configs/pipeline_config.yaml
-    env_file:
-      - .env
-    command: ["--input", "/data/processed/scene_001", "--output", "/data/datasets/scene_001", "--formats", "ros,coco"]
-    depends_on:
-      - calibrate
-    networks:
-      - workshop-net
-
-
-  # delivery 服务暂不启动，需要 OSS 配置
-  # delivery:
-  #   build: ./pipelines/05_delivery
-  #   volumes:
-  #     - ./data:/data
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - pack
-  #   networks:
-  #     - workshop-net
+version: '3.8'
 
 networks:
   workshop-net:
     driver: bridge
+
+services:
+  # 00_ingest 模块
+  ingest:
+    image: workshop-ingest:latest
+    container_name: workshop-ingest
+    restart: unless-stopped
+    networks:
+      - workshop-net
+    volumes:
+      - ./partdata/raw:/partdata/raw:ro
+      - ./partdata/processed:/partdata/processed
+      - ./partdata/models:/app/common/models:ro
+      - ./common/configs:/app/common/configs:ro
+      - ./partdata/logs:/app/logs
+    tmpfs:
+      - /tmp
+    environment:
+      - PYTHONPATH=/app/common/scripts
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    command: ["--input", "/partdata/raw/sample.bag", "--output", "/partdata/processed/scene_${SCENE_ID:-001}"]
+
+  # 01_quality 模块
+  quality:
+    image: workshop-quality:latest
+    container_name: workshop-quality
+    restart: unless-stopped
+    networks:
+      - workshop-net
+    volumes:
+      - ./partdata/processed:/partdata/processed
+      - ./partdata/models:/app/common/models:ro
+      - ./common/configs:/app/common/configs:ro
+      - ./partdata/logs:/app/logs
+    tmpfs:
+      - /tmp
+    environment:
+      - PYTHONPATH=/app/common/scripts
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    command: ["--input", "/partdata/processed/scene_${SCENE_ID:-001}", "--output", "/partdata/processed/scene_${SCENE_ID:-001}/quality"]
+    depends_on:
+      - ingest
+
+  # 02_enhance 模块
+  enhance:
+    image: workshop-enhance:latest
+    container_name: workshop-enhance
+    restart: unless-stopped
+    networks:
+      - workshop-net
+    volumes:
+      - ./partdata/processed:/partdata/processed
+      - ./partdata/models:/app/common/models:ro
+      - ./common/configs:/app/common/configs:ro
+      - ./partdata/logs:/app/logs
+    tmpfs:
+      - /tmp
+    environment:
+      - PYTHONPATH=/app/common/scripts
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - YOLO_MODEL=${YOLO_MODEL:-yolov8n.pt}
+      - GPU_ENABLED=${GPU_ENABLED:-false}
+    command: ["--input", "/partdata/processed/scene_${SCENE_ID:-001}", "--output", "/partdata/processed/scene_${SCENE_ID:-001}/enhanced"]
+    depends_on:
+      - quality
+
+  # 03_calibrate 模块
+  calibrate:
+    image: workshop-calibrate:latest
+    container_name: workshop-calibrate
+    restart: unless-stopped
+    networks:
+      - workshop-net
+    volumes:
+      - ./partdata/processed:/partdata/processed
+      - ./partdata/calibration_images:/partdata/calibration_images:ro
+      - ./partdata/models:/app/common/models:ro
+      - ./common/configs:/app/common/configs:ro
+      - ./partdata/logs:/app/logs
+    tmpfs:
+      - /tmp
+    environment:
+      - PYTHONPATH=/app/common/scripts
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    command: ["--input", "/partdata/calibration_images", "--output", "/partdata/processed/scene_${SCENE_ID:-001}/calib"]
+    depends_on:
+      - enhance
+
+  # 04_pack 模块
+  pack:
+    image: workshop-pack:latest
+    container_name: workshop-pack
+    restart: unless-stopped
+    networks:
+      - workshop-net
+    volumes:
+      - ./partdata/processed:/partdata/processed
+      - ./partdata/datasets:/partdata/datasets
+      - ./partdata/models:/app/common/models:ro
+      - ./common/configs:/app/common/configs:ro
+      - ./partdata/logs:/app/logs
+    tmpfs:
+      - /tmp
+    environment:
+      - PYTHONPATH=/app/common/scripts
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    command: ["--input", "/partdata/processed/scene_${SCENE_ID:-001}", "--output", "/partdata/datasets/scene_${SCENE_ID:-001}"]
+    depends_on:
+      - calibrate
+
+  # 05_delivery 模块（默认禁用）
+  delivery:
+    image: workshop-delivery:latest
+    container_name: workshop-delivery
+    restart: unless-stopped
+    networks:
+      - workshop-net
+    volumes:
+      - ./partdata/datasets:/partdata/datasets
+      - ./partdata/models:/app/common/models:ro
+      - ./common/configs:/app/common/configs:ro
+      - ./partdata/logs:/app/logs
+    tmpfs:
+      - /tmp
+    environment:
+      - PYTHONPATH=/app/common/scripts
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - OSS_ENDPOINT=${OSS_ENDPOINT}
+      - OSS_BUCKET=${OSS_BUCKET}
+    command: ["--input", "/partdata/datasets/scene_${SCENE_ID:-001}"]
+    depends_on:
+      - pack
+    profiles:
+      - delivery

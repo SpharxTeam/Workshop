@@ -1,147 +1,94 @@
-# Python
+# ======================== Python 缓存 ========================
 __pycache__/
 *.py[cod]
 *.so
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-pythonenv*
-
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
+dist/
+build/
 .pytest_cache/
-cover/
+.coverage
+htmlcov/
+*.pyc
 
-# Django
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# ======================== 数据目录（完全忽略）=======================
+/partdata/
+# 注意：partdata/ 下所有文件都不提交，包括依赖、模型、输入输出数据等
+# 旧路径兼容（如有，确保忽略）
+/data/
+/models/
 
-# Flask
-instance/
-.webassets-cache
+# ======================== 模型权重文件 ========================
+*.pt
+*.pth
+*.bin
+*.onnx
+*.h5
+*.pkl
+*.joblib
+*.safetensors
 
-# Scrapy
-.scrapy
-
-# Sphinx
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# poetry
-poetry.lock
-
-# pdm
-.pdm.toml
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# IDEs and editors
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Docker
-.dockerignore
-Dockerfile.*          # 忽略带后缀的 Dockerfile（如 Dockerfile.dev）
-docker-compose*.yml
-!docker-compose.yml
-!docker-compose.pipeline.yml
-!Dockerfile           # 明确不忽略主 Dockerfile
-
-# Data directories (local)
-/data/*
-!/data/.gitkeep
-/logs/*
-!/logs/.gitkeep
-
-# Environment files
+# ======================== 本地环境文件 ========================
 .env
 .env.local
-.env.*.local
+.venv/
+venv/
+env/
+ENV/
+pythonenv*
+*.swp
+*.swo
 
-# Secrets and credentials
-*.pem
-*.key
-*.crt
+# ======================== IDE 配置 ========================
+.vscode/
+.idea/
+*.sublime-*
+.project
+.classpath
+.settings/
+.lingma/
 
-# Project specific
-*.bag
-*.mp4
-*.png
-*.csv
-*.json
-!schemas/*.json           # 保留schema定义
-!configs/*.yaml           # 保留配置文件
-!docs/**                  # 保留文档
+# ======================== 系统文件 ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+*.dll
+*.exe
+*.msi
+*.log
+
+# ======================== 日志文件 ========================
+*.log
+/logs/
+# common/logs/ 通常存放 .gitkeep，但运行时日志不应提交
+
+# ======================== Docker 构建缓存 ========================
+.dockerignore
+docker-compose.override.yml
+*.tar
+*.tar.gz
+
+# ======================== Jupyter Notebook 临时文件 ========================
+.ipynb_checkpoints/
+*.ipynb
+
+# ======================== 测试输出 ========================
+/test_output/
+/temp/
+/output/
+*.result
+*.out
+
+# ======================== 编辑器临时文件 ========================
+*~
+\#*\#
+.\#*
+
+# ======================== 操作系统生成的文件 ========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
