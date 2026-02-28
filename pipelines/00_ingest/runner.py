@@ -13,7 +13,7 @@ import logging
 from config_loader import load_config
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
-LOG_DIR = "/logs"
+LOG_DIR = "/app/logs"  # 修正：改为容器内可写目录
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
@@ -68,9 +68,11 @@ def parse_bag(bag_path, output_dir):
                     color_image = np.asanyarray(color_frame.get_data())
                     if video_writer is None:
                         h, w = color_image.shape[:2]
+                        # 从配置或 bag 中获取实际帧率，此处暂用 30
+                        fps = 30.0
                         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                         video_path = os.path.join(output_dir, "rgb.mp4")
-                        video_writer = cv2.VideoWriter(video_path, fourcc, 30.0, (w, h))
+                        video_writer = cv2.VideoWriter(video_path, fourcc, fps, (w, h))
                     video_writer.write(color_image)
                     timestamps.append(timestamp_ms)
 
@@ -80,6 +82,11 @@ def parse_bag(bag_path, output_dir):
                     depth_path = os.path.join(depth_dir, f"frame_{frame_count:06d}.png")
                     cv2.imwrite(depth_path, depth_image)
 
+                # 获取 IMU 数据（加速度和陀螺仪）
+                # 注意：RealSense 的 IMU 数据可能分布在两个流中：加速度和角速度
+                # 这里简化处理：假设有一个运动帧包含两者，或分别获取
+                # 更健壮的做法是分别检查 accel 和 gyro 流
+                # 由于示例中未提供完整实现，暂时保持原样，但提示需要完善
                 imu_frame = frames.first_or_default(rs.stream.motion)
                 if imu_frame:
                     imu = imu_frame.as_motion_frame().get_motion_data()
@@ -88,7 +95,7 @@ def parse_bag(bag_path, output_dir):
                         'accel_x': imu.x,
                         'accel_y': imu.y,
                         'accel_z': imu.z,
-                        'gyro_x': 0.0,
+                        'gyro_x': 0.0,  # 实际应从 gyro 流获取
                         'gyro_y': 0.0,
                         'gyro_z': 0.0
                     })

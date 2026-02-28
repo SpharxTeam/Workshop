@@ -4,8 +4,13 @@ networks:
   workshop-net:
     driver: bridge
 
+volumes:
+  processed_data:
+  datasets_data:
+  calibration_images_data:
+  # raw_data 使用绑定挂载（便于手动放入bag文件），也可改为卷，这里保持绑定挂载方便
+
 services:
-  # 00_ingest 模块
   ingest:
     image: workshop-ingest:latest
     container_name: workshop-ingest
@@ -13,19 +18,15 @@ services:
     networks:
       - workshop-net
     volumes:
-      - ./partdata/raw:/partdata/raw:ro
-      - ./partdata/processed:/partdata/processed
-      - ./partdata/models:/app/common/models:ro
+      # 将宿主机 raw 目录挂载到容器内的 /data/raw（只读）
+      - ./partdata/tests/raw:/data/raw:ro
+      - processed_data:/data/processed
       - ./common/configs:/app/common/configs:ro
-      - ./partdata/logs:/app/logs
-    tmpfs:
-      - /tmp
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    command: ["--input", "/partdata/raw/sample.bag", "--output", "/partdata/processed/scene_${SCENE_ID:-001}"]
+    command: ["--input", "/data/raw/stairs.bag", "--output", "/data/processed/${SCENE_ID}"]
 
-  # 01_quality 模块
   quality:
     image: workshop-quality:latest
     container_name: workshop-quality
@@ -33,20 +34,15 @@ services:
     networks:
       - workshop-net
     volumes:
-      - ./partdata/processed:/partdata/processed
-      - ./partdata/models:/app/common/models:ro
+      - processed_data:/data/processed
       - ./common/configs:/app/common/configs:ro
-      - ./partdata/logs:/app/logs
-    tmpfs:
-      - /tmp
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    command: ["--input", "/partdata/processed/scene_${SCENE_ID:-001}", "--output", "/partdata/processed/scene_${SCENE_ID:-001}/quality"]
+    command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/processed/${SCENE_ID}/quality"]
     depends_on:
       - ingest
 
-  # 02_enhance 模块
   enhance:
     image: workshop-enhance:latest
     container_name: workshop-enhance
@@ -54,22 +50,17 @@ services:
     networks:
       - workshop-net
     volumes:
-      - ./partdata/processed:/partdata/processed
-      - ./partdata/models:/app/common/models:ro
+      - processed_data:/data/processed
       - ./common/configs:/app/common/configs:ro
-      - ./partdata/logs:/app/logs
-    tmpfs:
-      - /tmp
+      - ./partdata/models:/data/models:ro   # 模型文件挂载到 /data/models
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - YOLO_MODEL=${YOLO_MODEL:-yolov8n.pt}
-      - GPU_ENABLED=${GPU_ENABLED:-false}
-    command: ["--input", "/partdata/processed/scene_${SCENE_ID:-001}", "--output", "/partdata/processed/scene_${SCENE_ID:-001}/enhanced"]
+      - YOLO_MODEL_PATH=/data/models/yolov8n.pt   # 可通过环境变量传递
+    command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/processed/${SCENE_ID}/enhanced"]
     depends_on:
       - quality
 
-  # 03_calibrate 模块
   calibrate:
     image: workshop-calibrate:latest
     container_name: workshop-calibrate
@@ -77,21 +68,16 @@ services:
     networks:
       - workshop-net
     volumes:
-      - ./partdata/processed:/partdata/processed
-      - ./partdata/calibration_images:/partdata/calibration_images:ro
-      - ./partdata/models:/app/common/models:ro
+      - calibration_images_data:/data/calibration_images:ro
+      - processed_data:/data/processed
       - ./common/configs:/app/common/configs:ro
-      - ./partdata/logs:/app/logs
-    tmpfs:
-      - /tmp
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    command: ["--input", "/partdata/calibration_images", "--output", "/partdata/processed/scene_${SCENE_ID:-001}/calib"]
+    command: ["--input", "/data/calibration_images", "--output", "/data/processed/${SCENE_ID}/calib"]
     depends_on:
       - enhance
 
-  # 04_pack 模块
   pack:
     image: workshop-pack:latest
     container_name: workshop-pack
@@ -99,21 +85,16 @@ services:
     networks:
       - workshop-net
     volumes:
-      - ./partdata/processed:/partdata/processed
-      - ./partdata/datasets:/partdata/datasets
-      - ./partdata/models:/app/common/models:ro
+      - processed_data:/data/processed
+      - datasets_data:/data/datasets
       - ./common/configs:/app/common/configs:ro
-      - ./partdata/logs:/app/logs
-    tmpfs:
-      - /tmp
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    command: ["--input", "/partdata/processed/scene_${SCENE_ID:-001}", "--output", "/partdata/datasets/scene_${SCENE_ID:-001}"]
+    command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/datasets/${SCENE_ID}"]
     depends_on:
       - calibrate
 
-  # 05_delivery 模块（默认禁用）
   delivery:
     image: workshop-delivery:latest
     container_name: workshop-delivery
@@ -121,18 +102,12 @@ services:
     networks:
       - workshop-net
     volumes:
-      - ./partdata/datasets:/partdata/datasets
-      - ./partdata/models:/app/common/models:ro
+      - datasets_data:/data/datasets
       - ./common/configs:/app/common/configs:ro
-      - ./partdata/logs:/app/logs
-    tmpfs:
-      - /tmp
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - OSS_ENDPOINT=${OSS_ENDPOINT}
-      - OSS_BUCKET=${OSS_BUCKET}
-    command: ["--input", "/partdata/datasets/scene_${SCENE_ID:-001}"]
+    command: ["--input", "/data/datasets/${SCENE_ID}"]
     depends_on:
       - pack
     profiles:

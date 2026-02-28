@@ -13,7 +13,7 @@ import sys
 from config_loader import load_config
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
-LOG_DIR = "/logs"
+LOG_DIR = "/app/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,

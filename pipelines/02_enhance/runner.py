@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 增强模块：使用 YOLOv8 对视频进行目标检测，生成 COCO 格式标注。
+（修正版：支持环境变量 YOLO_MODEL_PATH，优先从 /data/models 加载）
 """
 import argparse
 import os
@@ -13,7 +14,7 @@ import sys
 from config_loader import load_config
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
-LOG_DIR = "/logs"
+LOG_DIR = "/app/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
@@ -29,14 +30,27 @@ def process_video(video_path, output_dir, config=None, **kwargs):
     if config is None:
         config = {}
     conf_thres = kwargs.get('conf', config.get('conf_threshold', 0.25))
-    model_path = kwargs.get('model', config.get('model_path', 'yolov8n.pt'))
+    
+    # 模型路径优先级：环境变量 > 命令行参数 > 配置文件 > 默认值
+    model_path = os.environ.get('YOLO_MODEL_PATH')
+    if model_path is None:
+        model_path = kwargs.get('model', config.get('model_path', 'yolov8n.pt'))
 
-    # 优先使用本地预下载模型
-    if not os.path.isabs(model_path) and not os.path.exists(model_path):
-        local_model = os.path.join('/app/common/models', os.path.basename(model_path))
-        if os.path.exists(local_model):
-            model_path = local_model
-            logger.info(f"使用本地模型: {model_path}")
+    # 如果路径不是绝对路径，尝试从 /data/models 下查找
+    if not os.path.isabs(model_path):
+        candidate = os.path.join('/data/models', os.path.basename(model_path))
+        if os.path.exists(candidate):
+            model_path = candidate
+            logger.info(f"使用挂载的模型: {model_path}")
+        else:
+            # 尝试从 /app/common/models 查找（兼容旧路径）
+            candidate2 = os.path.join('/app/common/models', os.path.basename(model_path))
+            if os.path.exists(candidate2):
+                model_path = candidate2
+                logger.info(f"使用旧路径模型: {model_path}")
+            else:
+                logger.error(f"模型文件不存在: {model_path} 或 {candidate} 或 {candidate2}")
+                raise FileNotFoundError(f"模型文件 {model_path} 不存在")
 
     logger.info(f"加载模型 {model_path}")
     try:
@@ -109,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument("--input", required=True, help="场景目录")
     parser.add_argument("--output", required=True, help="输出目录")
     parser.add_argument("--conf", type=float, help="置信度阈值")
-    parser.add_argument("--model", help="模型路径")
+    parser.add_argument("--model", help="模型路径（优先级低于环境变量 YOLO_MODEL_PATH）")
     parser.add_argument("--config", help="配置文件路径")
     args = parser.parse_args()
 

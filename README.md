@@ -2,6 +2,9 @@
 
 Workshop 是 SpharxHub 平台的核心数据采集和预处理子系统，采用模块化、容器化的架构设计，实现了从原始传感器数据到标准化高质量数据集的完整处理链路。作为物理世界数据工厂，Workshop 为后续的深度加工（Deepness）提供高质量的数据基础。
 
+*"From data intelligence emerges"*
+*"始于数据，终于智能"*
+
 ## 🏗️ 系统架构
 
 ```mermaid
@@ -445,6 +448,9 @@ graph LR
   <strong>构建 AI 时代的物理世界数据基础设施</strong>
 </p>
 
+<p align="center">
+  <em>From data intelligence emerges</em>
+</p>
 <p align="center">
   <em>始于数据，终于智能</em>
 </p>
