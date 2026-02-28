@@ -1,6 +1,10 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 # ============================================================================
 # workshop 基础镜像（最终版）
-# 包含所有模块共享的依赖、系统库和必要的目录结构
+# 基于 Python 3.10 slim，包含所有模块共享的依赖和系统库
 # 版本：2.0
 # ============================================================================
 
@@ -14,10 +18,6 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=600 \
     PIP_RETRIES=5 \
     PIP_NO_CACHE_DIR=1
-
-LABEL maintainer="Spharx Team" \
-      description="Workshop Pipeline Base Image" \
-      version="2.0"
 
 # 安装系统依赖（供 OpenCV、pyrealsense2 等使用）
 RUN apt-get update && apt-get install -y --no-install-recommends \

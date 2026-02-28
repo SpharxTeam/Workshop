@@ -1,128 +1,47 @@
-#!/bin/bash
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
+# ============================================================================
+# 导出所有数据集从 Docker 命名卷到宿主机目录
+# 统一使用 docker-compose 管理卷
+# ============================================================================
+
 set -e
-# ============================================================================
-# workshop 批量数据采集流水线运行脚本
-# 自动处理指定目录下的所有 .bag 文件
-# 用法：./scripts/pipeline/run_batch.sh <bag_directory> [--parallel <N>]
-# 示例：./scripts/pipeline/run_batch.sh /partdata/raw --parallel 2
-# ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../lib/workshop_common.sh"
 
-show_help() {
-    echo "用法: $0 <bag目录> [选项]"
-    echo ""
-    echo "选项:"
-    echo "  --parallel N      同时处理 N 个 bag 文件（默认 1，即串行）"
-    echo "  --config CONFIG   指定配置文件路径（默认 /configs/pipeline_config.yaml）"
-    echo "  -h, --help        显示帮助信息"
-    echo ""
-    echo "示例:"
-    echo "  $0 /partdata/raw"
-    echo "  $0 /partdata/raw --parallel 2"
-}
+if [ -f "$SCRIPT_DIR/../lib/workshop_common.sh" ]; then
+    source "$SCRIPT_DIR/../lib/workshop_common.sh"
+else
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+    log_info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
+    log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
+    log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
+fi
 
-# 默认值
-BAG_DIR=""
-CONFIG_PATH="/configs/pipeline_config.yaml"
-PARALLEL=1
+EXPORT_BASE="${1:-$(pwd)/exports}"
+EXPORT_DIR="$EXPORT_BASE/datasets_$(date +%Y%m%d_%H%M%S)"
 
-# 解析参数
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --config)
-            CONFIG_PATH="$2"
-            shift 2
-            ;;
-        --parallel)
-            PARALLEL="$2"
-            shift 2
-            ;;
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-        *)
-            if [ -z "$BAG_DIR" ]; then
-                BAG_DIR="$1"
-                shift
-            else
-                log_error "未知参数: $1"
-                show_help
-                exit 1
-            fi
-            ;;
-    esac
-done
+# 进入项目目录，确保 docker-compose 能找到正确配置
+cd "$(dirname "$SCRIPT_DIR")/.."
 
-# 检查参数
-if [ -z "$BAG_DIR" ]; then
-    log_error "请指定 bag 文件目录"
-    show_help
+# 检查卷是否存在
+if ! docker-compose run --rm --entrypoint sh alpine -c "ls -d /data/datasets 2>/dev/null" >/dev/null; then
+    log_error "Docker 卷 datasets_data 不可用，请先运行流水线生成数据。"
     exit 1
 fi
 
-if [ ! -d "$BAG_DIR" ]; then
-    log_error "目录不存在: $BAG_DIR"
+mkdir -p "$EXPORT_DIR"
+log_info "导出目标目录: $EXPORT_DIR"
+
+log_info "正在从卷 datasets_data 复制数据..."
+# 使用临时容器复制数据
+if docker-compose run --rm --entrypoint sh alpine -c "cp -av /data/datasets/. /exports/" >/dev/null; then
+    log_success "数据已成功导出到: $EXPORT_DIR"
+    log_info "目录内容："
+    ls -la "$EXPORT_DIR"
+else
+    log_error "导出过程中发生错误"
     exit 1
 fi
-
-# 检查并生成标定图像（全局一次）
-PROJECT_ROOT="$(get_project_root)"
-CALIB_IMAGES_DIR="$PROJECT_ROOT/partdata/calibration_images"
-if [ -z "$(ls -A "$CALIB_IMAGES_DIR" 2>/dev/null)" ]; then
-    log_warn "标定图像目录为空，将使用容器生成棋盘格图像..."
-    docker run --rm -v "$PROJECT_ROOT:/workspace" workshop-base \
-        python /workspace/scripts/utils/generate_realistic_calibration.py \
-        --output /workspace/partdata/calibration_images
-fi
-
-# 获取所有 .bag 文件列表（支持 .bag 和 .bag 结尾的文件）
-mapfile -t bag_files < <(find "$BAG_DIR" -maxdepth 1 -type f -name "*.bag" | sort)
-if [ ${#bag_files[@]} -eq 0 ]; then
-    log_error "目录 $BAG_DIR 中没有找到 .bag 文件"
-    exit 1
-fi
-
-log_info "找到 ${#bag_files[@]} 个 bag 文件，并发数: $PARALLEL"
-
-# 处理函数（对单个 bag 文件执行完整流水线）
-process_one() {
-    local bag_file="$1"
-    local scene_id="scene_$(basename "$bag_file" .bag)_$(date +%Y%m%d_%H%M%S_%N)"
-    log_info "开始处理: $bag_file -> $scene_id"
-
-    # 调用 run_full.sh（假设它接受 bag 路径作为参数）
-    "$SCRIPT_DIR/run_full.sh" --config "$CONFIG_PATH" "$bag_file" "$scene_id" || {
-        log_error "处理失败: $bag_file"
-        return 1
-    }
-    return 0
-}
-
-# 批量处理，控制并发
-running=0
-pids=()
-for bag_file in "${bag_files[@]}"; do
-    process_one "$bag_file" &
-    pids+=($!)
-    ((running++))
-
-    # 如果达到并发上限，等待任意一个完成
-    if [ $running -ge $PARALLEL ]; then
-        wait -n  # 等待任意一个子进程结束
-        # 重新计算 running 数量（清理已结束的进程）
-        running=0
-        for pid in "${pids[@]}"; do
-            if kill -0 "$pid" 2>/dev/null; then
-                ((running++))
-            fi
-        done
-    fi
-done
-
-# 等待所有剩余进程完成
-wait
-
-log_success "所有 bag 文件处理完成！"

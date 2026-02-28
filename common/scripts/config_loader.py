@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 """
 配置加载器：统一加载 YAML 配置文件，支持模块名和全局配置。
 """

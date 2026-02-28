@@ -1,15 +1,17 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 #!/usr/bin/env python3
 """
-交付模块（预留）：将打包好的数据集上传至 OSS 并发送通知。
+交付模块主脚本（预留）：将打包好的数据集上传至 OSS 并发送通知。
 """
 import argparse
 import os
 import sys
 import logging
-from pathlib import Path
 from config_loader import load_config
-from .oss_uploader import upload_to_oss
-from .notifier import send_notification
+from algorithm import upload_dataset, send_notification
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
 LOG_DIR = "/app/logs"
@@ -23,22 +25,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(MODULE_NAME)
-
-def upload_dataset(dataset_path, oss_config):
-    if not os.path.isdir(dataset_path):
-        logger.error(f"数据集目录不存在: {dataset_path}")
-        return False
-
-    success = True
-    for root, _, files in os.walk(dataset_path):
-        for file in files:
-            local = os.path.join(root, file)
-            rel = os.path.relpath(local, dataset_path)
-            remote = f"datasets/{os.path.basename(dataset_path)}/{rel}"
-            if not upload_to_oss(local, remote, **oss_config):
-                logger.error(f"上传失败: {local}")
-                success = False
-    return success
 
 def main():
     parser = argparse.ArgumentParser()
@@ -60,6 +46,8 @@ def main():
 
     try:
         success = upload_dataset(args.input, oss_config)
+        if success:
+            send_notification(f"数据集 {args.input} 已交付", config=config)
         sys.exit(0 if success else 1)
     except Exception as e:
         logger.critical(f"交付失败: {e}", exc_info=True)

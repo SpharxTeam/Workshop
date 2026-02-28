@@ -1,19 +1,21 @@
-#!/usr/bin/env python3
-"""
-数据导入模块：解析 RealSense .bag 文件，提取 RGB 视频、深度图和 IMU 数据。
-"""
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
+# ============================================================================
+# 数据导入模块主脚本。
+# 00_ingest 模块运行器
+# ============================================================================
+
 import argparse
 import os
 import sys
-import cv2
-import numpy as np
-import pandas as pd
-import pyrealsense2 as rs
 import logging
 from config_loader import load_config
+from algorithm import parse_bag
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
-LOG_DIR = "/app/logs"  # 修正：改为容器内可写目录
+LOG_DIR = "/app/logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
@@ -25,124 +27,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(MODULE_NAME)
 
-def parse_bag(bag_path, output_dir):
-    """解析 bag 文件，生成 RGB 视频、深度图和 IMU 数据"""
-    logger.info(f"开始解析 bag: {bag_path}")
-    if not os.path.exists(bag_path):
-        logger.error(f"输入文件不存在: {bag_path}")
-        return False
-
-    depth_dir = os.path.join(output_dir, "depth")
-    os.makedirs(depth_dir, exist_ok=True)
-
-    pipeline = rs.pipeline()
-    config = rs.config()
-    try:
-        rs.config.enable_device_from_file(config, bag_path, repeat_playback=False)
-        config.enable_all_streams()
-    except Exception as e:
-        logger.error(f"配置 bag 文件时出错: {e}")
-        return False
-
-    try:
-        profile = pipeline.start(config)
-        device = profile.get_device()
-        playback = device.as_playback()
-        if playback:
-            playback.set_real_time(False)
-
-        video_writer = None
-        timestamps = []
-        imu_data = []
-        frame_count = 0
-
-        while True:
-            try:
-                frames = pipeline.wait_for_frames()
-                timestamp_ms = frames.get_timestamp()
-                if frame_count % 100 == 0:
-                    logger.info(f"已处理 {frame_count} 帧")
-
-                color_frame = frames.get_color_frame()
-                if color_frame:
-                    color_image = np.asanyarray(color_frame.get_data())
-                    if video_writer is None:
-                        h, w = color_image.shape[:2]
-                        # 从配置或 bag 中获取实际帧率，此处暂用 30
-                        fps = 30.0
-                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                        video_path = os.path.join(output_dir, "rgb.mp4")
-                        video_writer = cv2.VideoWriter(video_path, fourcc, fps, (w, h))
-                    video_writer.write(color_image)
-                    timestamps.append(timestamp_ms)
-
-                depth_frame = frames.get_depth_frame()
-                if depth_frame:
-                    depth_image = np.asanyarray(depth_frame.get_data())
-                    depth_path = os.path.join(depth_dir, f"frame_{frame_count:06d}.png")
-                    cv2.imwrite(depth_path, depth_image)
-
-                # 获取 IMU 数据（加速度和陀螺仪）
-                # 注意：RealSense 的 IMU 数据可能分布在两个流中：加速度和角速度
-                # 这里简化处理：假设有一个运动帧包含两者，或分别获取
-                # 更健壮的做法是分别检查 accel 和 gyro 流
-                # 由于示例中未提供完整实现，暂时保持原样，但提示需要完善
-                imu_frame = frames.first_or_default(rs.stream.motion)
-                if imu_frame:
-                    imu = imu_frame.as_motion_frame().get_motion_data()
-                    imu_data.append({
-                        'timestamp': timestamp_ms,
-                        'accel_x': imu.x,
-                        'accel_y': imu.y,
-                        'accel_z': imu.z,
-                        'gyro_x': 0.0,  # 实际应从 gyro 流获取
-                        'gyro_y': 0.0,
-                        'gyro_z': 0.0
-                    })
-
-                frame_count += 1
-            except RuntimeError as e:
-                logger.info(f"播放结束: {e}")
-                break
-            except Exception as e:
-                logger.error(f"处理帧时出错: {e}")
-                break
-    finally:
-        pipeline.stop()
-        if video_writer:
-            video_writer.release()
-
-    if timestamps:
-        pd.DataFrame({'timestamp': timestamps}).to_csv(
-            os.path.join(output_dir, "timestamps.csv"), index=False
-        )
-        logger.info(f"时间戳已保存，共 {len(timestamps)} 条")
-    if imu_data:
-        pd.DataFrame(imu_data).to_csv(
-            os.path.join(output_dir, "imu.csv"), index=False
-        )
-        logger.info(f"IMU 数据已保存，共 {len(imu_data)} 条")
-    else:
-        logger.info("bag 中未找到 IMU 数据")
-
-    logger.info(f"解析完成：{frame_count} 帧")
-    return True
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="解析 RealSense bag 文件")
-    parser.add_argument("--input", required=True, help="输入bag文件路径")
+    parser.add_argument("--input", required=True, help="输入 bag 文件路径")
     parser.add_argument("--output", required=True, help="输出目录")
     parser.add_argument("--config", help="配置文件路径")
     args = parser.parse_args()
 
-    # 加载配置（ingest 无配置项，但保持接口一致）
     config = load_config(config_path=args.config) if args.config else {}
     logger.info(f"Python 版本: {sys.version}")
-    logger.info(f"pyrealsense2 版本: {rs.__version__ if hasattr(rs, '__version__') else 'unknown'}")
+    logger.info(f"pyrealsense2 版本: {__import__('pyrealsense2').__version__ if hasattr(__import__('pyrealsense2'), '__version__') else 'unknown'}")
 
     try:
-        success = parse_bag(args.input, args.output)
+        success = parse_bag(args.input, args.output, config)
         sys.exit(0 if success else 1)
     except Exception as e:
         logger.critical(f"未捕获的异常: {e}", exc_info=True)
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 """
 相机同步控制器
 负责多相机系统的同步控制和时间戳管理

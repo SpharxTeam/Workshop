@@ -460,3 +460,19 @@ graph LR
   <a href="https://docs.your-org.com/workshop">文档</a> ·
   <a href="https://github.com/your-org/workshop/issues">问题反馈</a>
 </p>
+
+
+## 许可证
+SpharxWorks 采用 **GPL-3.0 开源协议 + 商业闭源授权** 双轨授权模式，您可根据自身使用场景选择对应授权。
+
+### 开源授权（GPL-3.0）
+个人学习、学术研究、非商业原型验证、开源社区贡献等非商业场景，可免费使用本项目，需严格遵守GPL-3.0协议的开源义务，完整协议详见 [LICENSE-GPL-3.0](LICENSE-GPL-3.0)。
+
+### 商业闭源授权
+任何将本项目用于闭源商业产品、商业服务、盈利性项目的行为，均需提前向SPHARX极光感知科技申请商业授权，获得闭源使用豁免、官方技术支持、定制化服务等权益。
+
+商业授权详情详见 [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL)，授权申请请联系：
+- 官方邮箱：lidecheng@spharx.cn、wangliren@spharx.cn
+- 官方网站：https://spharx.cn
+
+© 2026 SPHARX极光感知科技，保留所有权利。

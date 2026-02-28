@@ -1,3 +1,7 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 """标准化数据IO工具 - 与 deepness 项目保持一致的接口规范"""
 
 import os

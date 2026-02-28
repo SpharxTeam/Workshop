@@ -1,12 +1,14 @@
-#!/bin/bash
-set -e
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 # ============================================================================
 # workshop 完整数据采集流水线运行脚本（最终版）
-# 功能：按顺序执行 ingest → quality → enhance → calibrate → pack
-#       所有输出数据存储于 Docker 命名卷中，彻底解决权限问题
+# 统一使用 docker-compose 操作卷，避免卷名混乱
 # 用法：./scripts/pipeline/run_full.sh [选项] <宿主机bag路径> [场景ID]
-# 示例：./scripts/pipeline/run_full.sh /mnt/d/Spharx/SpharxWorks/workshop/partdata/tests/raw/stairs.bag scene_001
 # ============================================================================
+
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -27,10 +29,6 @@ show_help() {
     echo "选项:"
     echo "  --config CONFIG_PATH   指定配置文件路径（默认 /configs/pipeline_config.yaml）"
     echo "  -h, --help             显示帮助信息"
-    echo ""
-    echo "参数:"
-    echo "  宿主机bag路径   bag 文件在宿主机上的绝对路径（需位于 ./partdata/tests/raw/ 下）"
-    echo "  场景ID           可选，自定义场景标识符，默认为 scene_<时间戳>"
     exit 0
 }
 
@@ -90,43 +88,27 @@ fi
 export SCENE_ID
 
 # 检查 docker 和 docker-compose
-check_command() {
-    if ! command -v "$1" &> /dev/null; then
-        log_error "未找到命令: $1，请先安装。"
-        exit 1
-    fi
-}
 check_command docker
 check_command docker-compose
 
-# 确保必要的 Docker 命名卷存在
-log_info "检查 Docker 命名卷..."
-for vol in processed_data datasets_data calibration_images_data; do
-    if ! docker volume inspect "$vol" &>/dev/null; then
-        docker volume create "$vol"
-        log_info "创建卷: $vol"
-    else
-        log_info "卷已存在: $vol"
-    fi
-done
+# 确保必要的 Docker 命名卷存在（通过 docker-compose 自动创建）
+log_info "确保 Docker 命名卷存在（由 docker-compose 自动创建）..."
+docker-compose up --no-start 2>/dev/null || true
 
-# 可选：递归修正卷根目录权限（确保卷内容归 appuser 所有）
-# 基础镜像已修复挂载点权限，此处作为额外保障
-log_info "确保卷根目录权限正确（appuser 可写）..."
-docker run --rm -v processed_data:/data alpine sh -c "chown -R 1000:1000 /data && chmod -R 755 /data" 2>/dev/null || true
-docker run --rm -v datasets_data:/data alpine sh -c "chown -R 1000:1000 /data && chmod -R 755 /data" 2>/dev/null || true
-docker run --rm -v calibration_images_data:/data alpine sh -c "chown -R 1000:1000 /data && chmod -R 755 /data" 2>/dev/null || true
+# 修正挂载点权限（使用 docker-compose run 临时容器）
+log_info "修正挂载点权限，确保 appuser 可写入..."
+docker-compose run --rm --user root --entrypoint sh ingest -c "chown 1000:1000 /data/processed /data/datasets /data/calibration_images 2>/dev/null || true"
 
 # 检查标定图像卷是否为空，若空则生成默认棋盘格图像
 log_info "检查标定图像卷内容..."
-CALIB_IMG_COUNT=$(docker run --rm -v calibration_images_data:/data alpine sh -c "ls -1 /data 2>/dev/null | wc -l")
+CALIB_IMG_COUNT=$(docker-compose run --rm --entrypoint sh alpine -c "ls -1 /data/calibration_images 2>/dev/null | wc -l" 2>/dev/null || echo 0)
 if [ "$CALIB_IMG_COUNT" -eq 0 ]; then
     log_warn "标定图像卷为空，正在生成棋盘格图像（约 20 张）..."
-    docker run --rm \
-        -v calibration_images_data:/output \
+    docker-compose run --rm \
         -v "$PROJECT_ROOT:/workspace" \
+        --entrypoint python \
         workshop-base \
-        python /workspace/scripts/utils/generate_realistic_calibration.py --output /output
+        /workspace/scripts/utils/generate_realistic_calibration.py --output /data/calibration_images
     log_success "标定图像生成完成"
 else
     log_info "标定图像卷已存在 $CALIB_IMG_COUNT 个文件，跳过生成"
@@ -143,8 +125,8 @@ log_info "开始处理场景: $SCENE_ID"
 log_info "宿主机 bag 路径: $HOST_BAG_PATH"
 log_info "容器内 bag 路径: $CONTAINER_BAG_PATH"
 log_info "配置文件: $CONFIG_PATH"
-log_info "中间数据卷: processed_data"
-log_info "最终数据集卷: datasets_data"
+log_info "中间数据卷: processed_data (由 docker-compose 管理)"
+log_info "最终数据集卷: datasets_data (由 docker-compose 管理)"
 log_info "========================================="
 
 # 1. Ingest
@@ -156,6 +138,23 @@ if ! docker-compose run --rm ingest \
     log_error "Ingest 失败"
     exit 1
 fi
+
+# 验证 Ingest 输出（使用 ingest 容器，确保访问正确卷）
+log_info "验证 Ingest 输出..."
+if docker-compose run --rm --entrypoint sh ingest -c "test -d /data/processed/$SCENE_ID"; then
+    log_success "场景目录 /data/processed/$SCENE_ID 存在"
+    FILE_SIZE=$(docker-compose run --rm --entrypoint sh ingest -c "stat -c%s /data/processed/$SCENE_ID/rgb.mp4 2>/dev/null || echo 0")
+    if [ "$FILE_SIZE" -gt 1024 ]; then
+        log_success "rgb.mp4 存在，大小: ${FILE_SIZE} 字节"
+    else
+        log_error "rgb.mp4 不存在或大小异常 (${FILE_SIZE} 字节)"
+        exit 1
+    fi
+else
+    log_error "场景目录 /data/processed/$SCENE_ID 不存在"
+    exit 1
+fi
+log_success "Ingest 输出验证通过"
 
 # 2. Quality
 log_info "[2/5] 运行 quality ..."
@@ -199,8 +198,8 @@ fi
 
 log_success "========================================="
 log_success "✅ 全部完成！"
-log_success "场景 $SCENE_ID 的数据集已存储在 Docker 卷 datasets_data 中。"
+log_success "场景 $SCENE_ID 的数据集已存储在 Docker 卷中（由 docker-compose 管理）。"
 log_success "您可以通过以下命令查看或导出数据："
-log_success "  docker run --rm -v datasets_data:/data alpine ls -l /data/$SCENE_ID"
+log_success "  docker-compose run --rm --entrypoint ls alpine /data/datasets/$SCENE_ID"
 log_success "  ./scripts/utils/export_datasets.sh  # 导出所有数据集到 ./exports/"
 log_success "========================================="

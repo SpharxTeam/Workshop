@@ -1,3 +1,7 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 """
 RealSense 相机管理器
 负责相机设备的初始化、配置和数据流管理

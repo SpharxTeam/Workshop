@@ -1,3 +1,7 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 """
 内参标定工具
 负责相机内参（焦距、主点、畸变系数）的标定

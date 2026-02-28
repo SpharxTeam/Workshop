@@ -1,3 +1,1 @@
-# 03_calibrate 模块依赖
-opencv-python>=4.6.0
-numpy>=1.26.0
+# 依赖已在 base 中满足，但为了下载脚本不报错，可以留空或加注释

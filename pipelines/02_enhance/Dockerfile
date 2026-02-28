@@ -1,23 +1,29 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 # ============================================================================
 # workshop 增强模块 (02_enhance)
 # 基于 workshop-base，使用 YOLOv8 进行目标检测，生成 COCO 标注
-# 版本：1.1
 # ============================================================================
 
 FROM workshop-base:latest
 
-ARG UID=1000
-ARG GID=1000
-
 ENV PYTHONPATH=/app/common/scripts
+
+# 安装额外的解码库（确保视频可读）
+RUN apt-get update && apt-get install -y --no-install-recommends libavcodec-extra && rm -rf /var/lib/apt/lists/*
 
 COPY common/scripts /app/common/scripts
 COPY common/configs /app/common/configs
-COPY pipelines/02_enhance /app/module
-COPY partdata/deps /app/deps
-RUN pip install --no-cache-dir --no-index --find-links /app/deps -r /app/module/requirements.txt
 
-# 显式设置日志目录权限（关键！）
+COPY pipelines/02_enhance /app/module
+
+RUN pip install --no-cache-dir -r /app/module/requirements.txt || \
+    (pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple -r /app/module/requirements.txt) || \
+    (pip install --no-cache-dir -i https://mirrors.ustc.edu.cn/pypi/web/simple -r /app/module/requirements.txt) || \
+    (pip install --no-cache-dir -i https://mirrors.bfsu.edu.cn/pypi/web/simple -r /app/module/requirements.txt)
+
 RUN mkdir -p /app/logs && chmod 777 /app/logs
 
 USER appuser

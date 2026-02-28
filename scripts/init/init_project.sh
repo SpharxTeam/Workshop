@@ -1,6 +1,9 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 #!/bin/bash
 set -e
-
 # ============================================================================
 # Workshop 本地开发环境初始化脚本（可选）
 # 创建必要的目录结构和虚拟环境

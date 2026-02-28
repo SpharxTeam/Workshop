@@ -1,3 +1,7 @@
+# Copyright (c) 2026 SPHARX . All Rights Reserved.
+# From data intelligence emerges.
+# 始于数据，终于智能。
+
 #!/usr/bin/env python3
 """
 生成真实的棋盘格标定图像（带内角点），用于测试相机标定模块。
