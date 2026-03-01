@@ -10,6 +10,8 @@
 
 set -e
 
+export COMPOSE_PROJECT_NAME=workshop
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 加载公共函数库
@@ -101,14 +103,16 @@ docker-compose run --rm --user root --entrypoint sh ingest -c "chown 1000:1000 /
 
 # 检查标定图像卷是否为空，若空则生成默认棋盘格图像
 log_info "检查标定图像卷内容..."
-CALIB_IMG_COUNT=$(docker-compose run --rm --entrypoint sh alpine -c "ls -1 /data/calibration_images 2>/dev/null | wc -l" 2>/dev/null || echo 0)
+# 使用 docker run 直接挂载卷，卷名由 COMPOSE_PROJECT_NAME 决定
+VOLUME_NAME="${COMPOSE_PROJECT_NAME}_calibration_images_data"
+CALIB_IMG_COUNT=$(docker run --rm -v ${VOLUME_NAME}:/data alpine sh -c "ls -1 /data 2>/dev/null | wc -l" 2>/dev/null || echo 0)
 if [ "$CALIB_IMG_COUNT" -eq 0 ]; then
     log_warn "标定图像卷为空，正在生成棋盘格图像（约 20 张）..."
-    docker-compose run --rm \
+    docker run --rm \
+        -v ${VOLUME_NAME}:/output \
         -v "$PROJECT_ROOT:/workspace" \
-        --entrypoint python \
         workshop-base \
-        /workspace/scripts/utils/generate_realistic_calibration.py --output /data/calibration_images
+        python /workspace/scripts/utils/generate_realistic_calibration.py --output /output
     log_success "标定图像生成完成"
 else
     log_info "标定图像卷已存在 $CALIB_IMG_COUNT 个文件，跳过生成"
@@ -139,19 +143,20 @@ if ! docker-compose run --rm ingest \
     exit 1
 fi
 
-# 验证 Ingest 输出（使用 ingest 容器，确保访问正确卷）
+# 验证 Ingest 输出
 log_info "验证 Ingest 输出..."
-if docker-compose run --rm --entrypoint sh ingest -c "test -d /data/processed/$SCENE_ID"; then
-    log_success "场景目录 /data/processed/$SCENE_ID 存在"
-    FILE_SIZE=$(docker-compose run --rm --entrypoint sh ingest -c "stat -c%s /data/processed/$SCENE_ID/rgb.mp4 2>/dev/null || echo 0")
-    if [ "$FILE_SIZE" -gt 1024 ]; then
-        log_success "rgb.mp4 存在，大小: ${FILE_SIZE} 字节"
+if docker-compose run --rm --entrypoint sh ingest -c "test -d /data/processed/$SCENE_ID/rgb"; then
+    log_success "场景目录 /data/processed/$SCENE_ID/rgb 存在"
+    # 检查第一帧图像是否存在
+    FRAME_COUNT=$(docker-compose run --rm --entrypoint sh ingest -c "ls -1 /data/processed/$SCENE_ID/rgb/frame_*.jpg 2>/dev/null | wc -l")
+    if [ "$FRAME_COUNT" -gt 0 ]; then
+        log_success "找到 $FRAME_COUNT 帧图像"
     else
-        log_error "rgb.mp4 不存在或大小异常 (${FILE_SIZE} 字节)"
+        log_error "RGB 图像目录为空"
         exit 1
     fi
 else
-    log_error "场景目录 /data/processed/$SCENE_ID 不存在"
+    log_error "RGB 图像目录 /data/processed/$SCENE_ID/rgb 不存在"
     exit 1
 fi
 log_success "Ingest 输出验证通过"

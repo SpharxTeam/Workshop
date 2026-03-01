@@ -1,11 +1,8 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# ============================================================================
-# RealSense bag 文件解析核心算法。
-# ============================================================================
-
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# RealSense bag 文件解析核心算法（图像序列版）。
+# 将每一帧保存为 JPEG 图像，不再生成视频文件。
+# =================================================================================
 import os
 import cv2
 import numpy as np
@@ -16,14 +13,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 def parse_bag(bag_path, output_dir, config=None):
-    """解析 bag 文件，生成 RGB 视频、深度图和 IMU 数据"""
+    """解析 bag 文件，生成 RGB 图像序列、深度图和 IMU 数据"""
     logger.info(f"开始解析 bag: {bag_path}")
     if not os.path.exists(bag_path):
         logger.error(f"输入文件不存在: {bag_path}")
         return False
 
+    # 创建目录
+    rgb_dir = os.path.join(output_dir, "rgb")
     depth_dir = os.path.join(output_dir, "depth")
+    os.makedirs(rgb_dir, exist_ok=True)
     os.makedirs(depth_dir, exist_ok=True)
+    logger.info(f"RGB 图像保存目录: {rgb_dir}")
     logger.info(f"深度图保存目录: {depth_dir}")
 
     pipeline = rs.pipeline()
@@ -35,11 +36,10 @@ def parse_bag(bag_path, output_dir, config=None):
         logger.error(f"配置 bag 文件时出错: {e}")
         return False
 
-    video_writer = None
     timestamps = []
     imu_data = []
     frame_count = 0
-    frames_written = 0
+    saved_frames = 0
 
     try:
         profile = pipeline.start(cfg)
@@ -58,24 +58,11 @@ def parse_bag(bag_path, output_dir, config=None):
                 color_frame = frames.get_color_frame()
                 if color_frame:
                     color_image = np.asanyarray(color_frame.get_data())
-                    if video_writer is None:
-                        h, w = color_image.shape[:2]
-                        fps = 30.0  # 可从配置或 bag 元数据获取
-                        video_path = os.path.join(output_dir, "rgb.mp4")
-                        # 尝试多种编码器
-                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                        video_writer = cv2.VideoWriter(video_path, fourcc, fps, (w, h))
-                        if not video_writer.isOpened():
-                            logger.warning("mp4v 编码器初始化失败，尝试 X264")
-                            fourcc = cv2.VideoWriter_fourcc(*'X264')
-                            video_writer = cv2.VideoWriter(video_path, fourcc, fps, (w, h))
-                        if not video_writer.isOpened():
-                            raise RuntimeError("无法初始化视频写入器，所有编码器均失败")
-                        logger.info(f"视频写入器初始化成功，输出: {video_path}, 分辨率: {w}x{h}, fps: {fps}")
-
-                    video_writer.write(color_image)
-                    frames_written += 1
+                    # 保存 RGB 图像为 JPEG
+                    rgb_path = os.path.join(rgb_dir, f"frame_{frame_count:06d}.jpg")
+                    cv2.imwrite(rgb_path, color_image, [cv2.IMWRITE_JPEG_QUALITY, 95])
                     timestamps.append(timestamp_ms)
+                    saved_frames += 1
 
                 depth_frame = frames.get_depth_frame()
                 if depth_frame:
@@ -105,34 +92,14 @@ def parse_bag(bag_path, output_dir, config=None):
                 break
     finally:
         pipeline.stop()
-        if video_writer:
-            video_writer.release()
-            logger.info(f"视频写入器已释放，共写入 {frames_written} 帧")
 
-            # 验证视频文件是否可被 OpenCV 打开
-            video_path = os.path.join(output_dir, "rgb.mp4")
-            if os.path.exists(video_path):
-                file_size = os.path.getsize(video_path)
-                logger.info(f"视频文件已保存，大小: {file_size} 字节")
-                if file_size < 1024:
-                    logger.error(f"视频文件大小异常 ({file_size} 字节)，可能写入失败")
-                    return False
-                # 使用 OpenCV 检查文件是否可读
-                cap_check = cv2.VideoCapture(video_path)
-                if not cap_check.isOpened():
-                    logger.error(f"生成的视频文件 {video_path} 无法被 OpenCV 打开")
-                    return False
-                cap_check.release()
-                logger.info("视频文件完整性验证通过")
-            else:
-                logger.error(f"视频文件 {video_path} 未生成")
-                return False
-
+    # 保存时间戳
     if timestamps:
         pd.DataFrame({'timestamp': timestamps}).to_csv(
             os.path.join(output_dir, "timestamps.csv"), index=False
         )
         logger.info(f"时间戳已保存，共 {len(timestamps)} 条")
+
     if imu_data:
         pd.DataFrame(imu_data).to_csv(
             os.path.join(output_dir, "imu.csv"), index=False
@@ -141,5 +108,5 @@ def parse_bag(bag_path, output_dir, config=None):
     else:
         logger.info("bag 中未找到 IMU 数据")
 
-    logger.info(f"解析完成：总帧数 {frame_count}，写入视频帧 {frames_written}")
+    logger.info(f"解析完成：总帧数 {frame_count}，保存图像 {saved_frames} 帧")
     return True

@@ -1,10 +1,7 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""
-相机内参标定核心算法。
-"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 相机内参标定核心算法。
+# =================================================================================
 import os
 import cv2
 import numpy as np

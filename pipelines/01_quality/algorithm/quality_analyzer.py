@@ -1,10 +1,7 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""
-质检核心算法：模糊检测、曝光检测、丢帧统计。
-"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 算法：基于图像序列进行模糊检测、曝光检测等。
+# =================================================================================
 import json
 import os
 import cv2
@@ -15,41 +12,34 @@ from .blur_detector import detect_blurry_frames
 
 logger = logging.getLogger(__name__)
 
-def detect_exposure(video_path, over_threshold=240, under_threshold=30):
-    cap = cv2.VideoCapture(video_path)
+def detect_exposure_on_images(rgb_dir, over_threshold=240, under_threshold=30):
+    """遍历 RGB 图像目录，检测过曝和欠曝帧"""
     over = []
     under = []
-    idx = 0
+    frame_idx = 0
     while True:
-        ret, frame = cap.read()
-        if not ret:
+        img_path = os.path.join(rgb_dir, f"frame_{frame_idx:06d}.jpg")
+        if not os.path.exists(img_path):
             break
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        img = cv2.imread(img_path)
+        if img is None:
+            logger.warning(f"无法读取图像: {img_path}")
+            frame_idx += 1
+            continue
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         mean = np.mean(gray)
         if mean > over_threshold:
-            over.append(idx)
+            over.append(frame_idx)
         elif mean < under_threshold:
-            under.append(idx)
-        idx += 1
-    cap.release()
+            under.append(frame_idx)
+        frame_idx += 1
     return over, under
 
-def check_dropped_frames(timestamp_csv, expected_fps=30):
-    df = pd.read_csv(timestamp_csv)
-    timestamps = df['timestamp'].values
-    if len(timestamps) < 2:
-        return 0, 0.0
-    intervals = np.diff(timestamps)
-    expected_interval = 1000.0 / expected_fps
-    dropped = np.sum(intervals > expected_interval * 1.5)
-    max_interval = np.max(intervals) if len(intervals) > 0 else 0.0
-    return int(dropped), float(max_interval)
-
 def generate_quality_report(scene_dir, output_dir, config=None, **kwargs):
-    video_path = os.path.join(scene_dir, "rgb.mp4")
+    rgb_dir = os.path.join(scene_dir, "rgb")
     timestamp_path = os.path.join(scene_dir, "timestamps.csv")
-    if not os.path.exists(video_path):
-        raise FileNotFoundError(f"视频不存在: {video_path}")
+    if not os.path.exists(rgb_dir):
+        raise FileNotFoundError(f"RGB 图像目录不存在: {rgb_dir}")
     if not os.path.exists(timestamp_path):
         raise FileNotFoundError(f"时间戳不存在: {timestamp_path}")
 
@@ -61,13 +51,20 @@ def generate_quality_report(scene_dir, output_dir, config=None, **kwargs):
     under_threshold = kwargs.get('under_threshold', hardware.get('under_threshold', 30))
     expected_fps = kwargs.get('expected_fps', hardware.get('expected_fps', 30))
 
-    blurry_frames, blur_scores = detect_blurry_frames(video_path, threshold=blur_threshold)
-    overexposed, underexposed = detect_exposure(video_path, over_threshold, under_threshold)
-    dropped_frames, max_interval_ms = check_dropped_frames(timestamp_path, expected_fps)
-
-    cap = cv2.VideoCapture(video_path)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    cap.release()
+    blurry_frames, blur_scores = detect_blurry_frames(rgb_dir, threshold=blur_threshold)
+    overexposed, underexposed = detect_exposure_on_images(rgb_dir, over_threshold, under_threshold)
+    # 丢帧统计（基于时间戳）
+    df = pd.read_csv(timestamp_path)
+    timestamps = df['timestamp'].values
+    total_frames = len(timestamps)
+    if total_frames < 2:
+        dropped_frames = 0
+        max_interval_ms = 0.0
+    else:
+        intervals = np.diff(timestamps)
+        expected_interval = 1000.0 / expected_fps
+        dropped_frames = np.sum(intervals > expected_interval * 1.5)
+        max_interval_ms = np.max(intervals) if len(intervals) > 0 else 0.0
 
     report = {
         "scene_id": os.path.basename(scene_dir),
@@ -76,12 +73,12 @@ def generate_quality_report(scene_dir, output_dir, config=None, **kwargs):
         "camera_reports": [{
             "camera_id": "cam0",
             "total_frames": total_frames,
-            "dropped_frames": dropped_frames,
+            "dropped_frames": int(dropped_frames),
             "blurry_frames": blurry_frames,
             "overexposed_frames": overexposed,
             "underexposed_frames": underexposed,
             "avg_sync_offset_ms": 0.0,
-            "max_interval_ms": max_interval_ms,
+            "max_interval_ms": float(max_interval_ms),
             "blur_scores": blur_scores
         }],
         "notes": ""

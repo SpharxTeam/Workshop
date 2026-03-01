@@ -1,10 +1,7 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""
-数据打包核心算法。
-"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 数据打包核心算法（适配图像序列结构）
+# =================================================================================
 import os
 import json
 import shutil
@@ -36,9 +33,10 @@ def pack_scene(input_dir, output_dir, formats=None, config=None):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    required = [("rgb.mp4", "rgb.mp4"), ("timestamps.csv", "timestamps.csv")]
+    required = [("timestamps.csv", "timestamps.csv")]
     optional = [
         ("imu.csv", "imu.csv"),
+        ("rgb", "rgb"),
         ("depth", "depth"),
         ("quality/quality_report.json", "quality_report.json"),
         ("enhanced/annotations.json", "annotations.json"),

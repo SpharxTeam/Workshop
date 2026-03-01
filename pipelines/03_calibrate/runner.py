@@ -1,12 +1,7 @@
-#!/usr/bin/env python3
-
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""
-标定模块主脚本：基于棋盘格图像进行相机内参标定。
-"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 标定模块主脚本：基于棋盘格图像进行相机内参标定。
+# =================================================================================
 import argparse
 import os
 import sys

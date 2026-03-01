@@ -1,8 +1,8 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""场景数据模型"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================  
+# 场景数据模型
+# 说明：场景数据模型
+# =================================================================================
 from dataclasses import dataclass
 from typing import List, Dict, Optional
 import datetime

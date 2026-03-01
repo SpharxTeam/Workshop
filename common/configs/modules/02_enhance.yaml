@@ -1,13 +1,13 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# 02_enhance 模块配置
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 02_enhance 模块配置文件
+# =================================================================================
 yolo:
   model: "yolov8n.pt"
   conf_threshold: 0.25
   iou_threshold: 0.45
-  classes: null  # null表示检测所有类别
+  classes: null  
+  # null表示检测所有类别
 
 enhancement:
   enable_denoising: true

@@ -1,11 +1,7 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# ============================================================================
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
 # 质检模块主脚本：模糊检测、曝光检测、丢帧统计，生成 JSON 报告。
-# ============================================================================
-
+# =================================================================================
 import argparse
 import os
 import sys
@@ -28,12 +24,12 @@ logger = logging.getLogger(MODULE_NAME)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="场景目录")
+    parser.add_argument("--input", required=True, help="场景目录（包含 rgb/ 子目录）")
     parser.add_argument("--output", required=True, help="报告输出目录")
-    parser.add_argument("--blur_threshold", type=int, help="模糊检测阈值（覆盖配置文件）")
-    parser.add_argument("--over_threshold", type=int, help="过曝阈值（覆盖配置文件）")
-    parser.add_argument("--under_threshold", type=int, help="欠曝阈值（覆盖配置文件）")
-    parser.add_argument("--fps", type=int, help="期望帧率（覆盖配置文件）")
+    parser.add_argument("--blur_threshold", type=int)
+    parser.add_argument("--over_threshold", type=int)
+    parser.add_argument("--under_threshold", type=int)
+    parser.add_argument("--fps", type=int)
     parser.add_argument("--config", help="配置文件路径")
     args = parser.parse_args()
 

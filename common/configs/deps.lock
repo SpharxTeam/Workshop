@@ -1,6 +1,7 @@
-# ============================================================================
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
 # Workshop 依赖版本锁定文件（预留）
-# 
+# =================================================================================
 # 说明：
 # 1. Workshop 项目所有依赖均为 Python 包，通过 requirements.txt 管理，
 #    无需像 deepness 那样管理编译依赖（utils3d, MoGe, gsplat, pipeline 等）。
@@ -11,6 +12,4 @@
 #   utils3d:
 #     url: https://github.com/EasternJournalist/utils3d
 #     commit: 3fab839f0be9931dac7c8488eb0e1600c236e183
-# ============================================================================
-
 # Workshop 当前无编译依赖，此文件留空

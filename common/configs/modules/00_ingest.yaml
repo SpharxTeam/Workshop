@@ -1,15 +1,15 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# 00_ingest 模块配置
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 00_ingest 模块配置文件
+# =================================================================================
 privacy:
   enable_blur: true
   blur_kernel_size: 15
   face_detection: true
 
 data_format:
-  output_structure: "standard"  # standard/custom
+  output_structure: "standard"
+  # standard/custom
   compression_level: 6
 
 input:

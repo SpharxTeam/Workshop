@@ -1,8 +1,8 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""传感器数据流模型"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 传感器数据流模型
+# 说明：传感器数据流模型
+# =================================================================================
 from dataclasses import dataclass
 from typing import List, Dict, Optional
 import numpy as np

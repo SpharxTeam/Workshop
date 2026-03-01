@@ -1,8 +1,8 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""数据采集页面"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 01_capture 模块配置文件
+# 说明：数据采集页面
+# =================================================================================
 import streamlit as st
 
 st.title("📷 数据采集监控")

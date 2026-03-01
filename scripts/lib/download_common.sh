@@ -2,7 +2,6 @@
 # From data intelligence emerges.
 # 始于数据，终于智能。
 
-#!/bin/bash
 # ============================================================================
 # 通用 GitHub 源码下载函数库
 # 提供 download_repo 函数，支持官方 git、官方 ZIP、镜像 git 三种方式

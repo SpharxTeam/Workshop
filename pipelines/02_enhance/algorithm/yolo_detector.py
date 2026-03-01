@@ -1,22 +1,26 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# ============================================================================
-#YOLOv8 目标检测核心算法。
-# ============================================================================
-
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# YOLOv8 目标检测核心算法。
+# =================================================================================
 import os
 import cv2
 import json
+import numpy as np
 from ultralytics import YOLO
 import logging
 
 logger = logging.getLogger(__name__)
 
-def process_video(video_path, output_dir, config=None, **kwargs):
-    if config is None:
-        config = {}
+def process_video(scene_dir, output_dir, config=None, **kwargs):
+    """
+    处理场景目录中的 RGB 图像序列，生成 COCO 格式标注。
+    scene_dir: 场景目录，包含 rgb/ 子目录
+    output_dir: 输出目录（用于保存 annotations.json）
+    """
+    rgb_dir = os.path.join(scene_dir, "rgb")
+    if not os.path.exists(rgb_dir):
+        raise FileNotFoundError(f"RGB 图像目录不存在: {rgb_dir}")
+
     conf_thres = kwargs.get('conf', config.get('conf_threshold', 0.25))
     model_path = kwargs.get('model', config.get('model_path', 'yolov8n.pt'))
 
@@ -41,58 +45,62 @@ def process_video(video_path, output_dir, config=None, **kwargs):
         logger.error(f"模型加载失败: {e}")
         raise
 
-    # 尝试打开视频
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise IOError(f"无法打开视频: {video_path}，可能文件损坏或缺少解码器")
+    # 获取所有图像文件列表
+    frame_files = sorted([f for f in os.listdir(rgb_dir) if f.startswith('frame_') and f.endswith('.jpg')])
+    total_frames = len(frame_files)
+    if total_frames == 0:
+        raise IOError("RGB 目录中没有图像文件")
 
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    logger.info(f"视频信息: {width}x{height}, 总帧数 {total_frames}")
+    # 读取第一帧获取尺寸
+    first_frame = cv2.imread(os.path.join(rgb_dir, frame_files[0]))
+    height, width = first_frame.shape[:2]
+    logger.info(f"找到 {total_frames} 帧图像，分辨率: {width}x{height}")
 
+    # 准备 COCO 输出（使用 Python 原生类型）
     coco = {
         "images": [],
         "annotations": [],
-        "categories": [{"id": i, "name": v, "supercategory": "object"} for i, v in enumerate(model.names.values())]
+        "categories": [{"id": int(i), "name": str(v), "supercategory": "object"} for i, v in enumerate(model.names.values())]
     }
     ann_id = 0
-    frame_id = 0
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    for frame_id, frame_name in enumerate(frame_files):
+        frame_path = os.path.join(rgb_dir, frame_name)
+        frame = cv2.imread(frame_path)
+        if frame is None:
+            logger.warning(f"无法读取图像 {frame_name}，跳过")
+            continue
+
         results = model(frame, conf=conf_thres, verbose=False)
         coco["images"].append({
-            "id": frame_id,
-            "file_name": f"frame_{frame_id:06d}.jpg",
-            "width": width,
-            "height": height
+            "id": int(frame_id),
+            "file_name": str(frame_name),
+            "width": int(width),
+            "height": int(height)
         })
         if results[0].boxes is not None:
             boxes = results[0].boxes.xyxy.cpu().numpy()
             confs = results[0].boxes.conf.cpu().numpy()
             cls_ids = results[0].boxes.cls.cpu().numpy().astype(int)
             for box, conf, cls_id in zip(boxes, confs, cls_ids):
-                x1, y1, x2, y2 = box
-                w, h = x2 - x1, y2 - y1
+                # 将 NumPy 类型转换为 Python 原生类型
+                x1, y1, x2, y2 = map(float, box)
+                w = x2 - x1
+                h = y2 - y1
                 coco["annotations"].append({
-                    "id": ann_id,
-                    "image_id": frame_id,
+                    "id": int(ann_id),
+                    "image_id": int(frame_id),
                     "category_id": int(cls_id),
-                    "bbox": [float(x1), float(y1), float(w), float(h)],
-                    "area": w * h,
+                    "bbox": [x1, y1, w, h],          # 已经是 float
+                    "area": float(w * h),             # 转换为 float
                     "segmentation": [],
                     "iscrowd": 0,
-                    "score": float(conf)
+                    "score": float(conf)              # 已经是 float
                 })
                 ann_id += 1
-        frame_id += 1
         if frame_id % 100 == 0:
             logger.info(f"已处理 {frame_id}/{total_frames} 帧")
 
-    cap.release()
     logger.info(f"检测完成，共 {ann_id} 个目标")
     os.makedirs(output_dir, exist_ok=True)
     out_path = os.path.join(output_dir, "annotations.json")

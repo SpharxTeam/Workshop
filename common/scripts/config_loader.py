@@ -1,12 +1,8 @@
-#!/usr/bin/env python3
-
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""
-配置加载器：统一加载 YAML 配置文件，支持模块名和全局配置。
-"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 配置加载器：统一加载 YAML 配置文件，支持模块名和全局配置。
+# 说明：配置加载器模块，提供统一的配置加载接口，支持通过模块名加载模块配置，也支持通过配置文件路径加载全局配置。
+# =================================================================================
 import os
 import yaml
 import logging

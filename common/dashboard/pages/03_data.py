@@ -1,8 +1,8 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""数据管理页面"""
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 03_data 模块配置文件
+# 说明：数据管理页面
+# =================================================================================
 import streamlit as st
 import pandas as pd
 

@@ -1,12 +1,8 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# ============================================================================
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
 # workshop 质检模块 (01_quality)
 # 基于 workshop-base，进行模糊检测、曝光检测、丢帧统计
-# ============================================================================
-
+# =================================================================================
 FROM workshop-base:latest
 
 ENV PYTHONPATH=/app/common/scripts

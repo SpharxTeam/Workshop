@@ -1,8 +1,7 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# 04_pack 模块配置
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 04_pack 模块配置文件
+# =================================================================================
 formats:
   ros:
     enabled: true
@@ -10,7 +9,8 @@ formats:
     chunk_size: 100
   coco:
     enabled: true
-    split_ratios: [0.7, 0.2, 0.1]  # train/val/test
+    split_ratios: [0.7, 0.2, 0.1]
+    # train/val/test
 
 metadata:
   include_sensor_info: true
