@@ -1,14 +1,10 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-#!/bin/bash
-set -e
-# ============================================================================
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
 # Workshop 本地开发环境初始化脚本（可选）
 # 创建必要的目录结构和虚拟环境
 # 用法：./scripts/init/init_project.sh
-# ============================================================================
+# =================================================================================
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/workshop_common.sh"

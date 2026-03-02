@@ -1,8 +1,8 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
 # =================================================================================
-# workshop 基础镜像（重构版）
+# workshop 基础镜像
 # 包含所有模块共享的系统库、Python 包，并预装 ffmpeg 和 OpenCV 完整支持
-# 版本：3.0 (2026.03.01)
+# 版本：3.1（添加时区设置）
 # =================================================================================
 FROM python:3.10-slim
 
@@ -13,6 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     PATH="/usr/local/bin:/usr/bin:/bin:/usr/local/cuda/bin:${PATH}" \
+    TZ=Asia/Shanghai \
     YOLO_CONFIG_DIR="/home/appuser/.config/Ultralytics"
 
 # 安装系统依赖（包括 ffmpeg 和 OpenCV 所需的所有库）
@@ -45,6 +46,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmp3lame-dev \
     libopencore-amrnb-dev \
     libopencore-amrwb-dev \
+    tzdata \
+    && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && dpkg-reconfigure -f noninteractive tzdata \
+    && echo "Asia/Shanghai" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 # 配置 pip 镜像（优先使用清华源）

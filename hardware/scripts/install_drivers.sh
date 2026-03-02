@@ -1,13 +1,8 @@
-#!/bin/bash
-
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
 # RealSense 驱动安装脚本
 # 支持 Ubuntu 18.04/20.04/22.04
-
+# =================================================================================
 set -e
 
 echo "🔧 开始安装 RealSense 驱动..."

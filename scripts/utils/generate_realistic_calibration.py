@@ -1,14 +1,9 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-#!/usr/bin/env python3
-"""
-生成真实的棋盘格标定图像（带内角点），用于测试相机标定模块。
-图像尺寸：1280x960，棋盘格内角点 9x6，方格大小 100 像素。
-图像保存为灰度 JPEG。
-"""
-
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 生成真实的棋盘格标定图像（带内角点），用于测试相机标定模块。
+# 图像尺寸：1280x960，棋盘格内角点 9x6，方格大小 100 像素。
+# 图像保存为灰度 JPEG。
+# =================================================================================
 import cv2
 import numpy as np
 import os

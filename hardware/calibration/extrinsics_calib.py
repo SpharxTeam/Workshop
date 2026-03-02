@@ -1,12 +1,8 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-"""
-外参标定工具
-负责相机间相对位置和姿态的标定（立体视觉）
-"""
-
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
+# 外参标定工具
+# 负责相机间相对位置和姿态的标定（立体视觉）
+# =================================================================================
 import cv2
 import numpy as np
 from typing import List, Tuple, Optional, Dict

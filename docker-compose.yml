@@ -1,25 +1,16 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# ============================================================================
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# =================================================================================
 # workshop 完整数据采集流水线运行脚本（最终版）
 # 功能：按顺序执行 ingest → quality → enhance → calibrate → pack
 #       所有输出数据存储于 Docker 命名卷中，彻底解决权限问题
 # 用法：./scripts/pipeline/run_full.sh [选项] <宿主机bag路径> [场景ID]
 # 示例：./scripts/pipeline/run_full.sh /mnt/d/Spharx/SpharxWorks/workshop/partdata/tests/raw/stairs.bag scene_001
-# ============================================================================
-
+# =================================================================================
 version: '3.8'
 
 networks:
   workshop-net:
     driver: bridge
-
-volumes:
-  processed_data:
-  datasets_data:
-  calibration_images_data:
 
 services:
   ingest:
@@ -29,13 +20,14 @@ services:
     networks:
       - workshop-net
     volumes:
-      - ./partdata/tests/raw:/data/raw:ro
-      - processed_data:/data/processed
+      - ./produce/input/raw:/data/raw:ro
+      - ./produce/output/processed:/data/processed
       - ./common/configs:/app/common/configs:ro
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    command: ["--input", "/data/raw/stairs.bag", "--output", "/data/processed/${SCENE_ID}"]
+      - TZ=Asia/Shanghai
+    command: ["--input", "/data/raw/${BAG_FILE}", "--output", "/data/processed/${SCENE_ID}"]
 
   quality:
     image: workshop-quality:latest
@@ -44,11 +36,12 @@ services:
     networks:
       - workshop-net
     volumes:
-      - processed_data:/data/processed
+      - ./produce/output/processed:/data/processed
       - ./common/configs:/app/common/configs:ro
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TZ=Asia/Shanghai
     command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/processed/${SCENE_ID}/quality"]
     depends_on:
       - ingest
@@ -60,13 +53,14 @@ services:
     networks:
       - workshop-net
     volumes:
-      - processed_data:/data/processed
+      - ./produce/output/processed:/data/processed
       - ./common/configs:/app/common/configs:ro
       - ./partdata/models:/data/models:ro
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - YOLO_MODEL_PATH=/data/models/yolov8n.pt
+      - TZ=Asia/Shanghai
     command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/processed/${SCENE_ID}/enhanced"]
     depends_on:
       - quality
@@ -78,12 +72,13 @@ services:
     networks:
       - workshop-net
     volumes:
-      - calibration_images_data:/data/calibration_images:ro
-      - processed_data:/data/processed
+      - ./produce/input/calibration:/data/calibration_images:ro
+      - ./produce/output/processed:/data/processed
       - ./common/configs:/app/common/configs:ro
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TZ=Asia/Shanghai
     command: ["--input", "/data/calibration_images", "--output", "/data/processed/${SCENE_ID}/calib"]
     depends_on:
       - enhance
@@ -95,12 +90,13 @@ services:
     networks:
       - workshop-net
     volumes:
-      - processed_data:/data/processed
-      - datasets_data:/data/datasets
+      - ./produce/output/processed:/data/processed
+      - ./produce/output/datasets:/data/datasets
       - ./common/configs:/app/common/configs:ro
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TZ=Asia/Shanghai
     command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/datasets/${SCENE_ID}"]
     depends_on:
       - calibrate
@@ -112,11 +108,12 @@ services:
     networks:
       - workshop-net
     volumes:
-      - datasets_data:/data/datasets
+      - ./produce/output/datasets:/data/datasets
       - ./common/configs:/app/common/configs:ro
     environment:
       - PYTHONPATH=/app/common/scripts
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TZ=Asia/Shanghai
     command: ["--input", "/data/datasets/${SCENE_ID}"]
     depends_on:
       - pack
