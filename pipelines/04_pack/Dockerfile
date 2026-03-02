@@ -1,8 +1,7 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # workshop 打包模块 (04_pack)
 # 基于 workshop-base，将处理后的数据打包成数据集并生成 manifest
-# =================================================================================
+
 FROM workshop-base:latest
 
 ENV PYTHONPATH=/app/common/scripts

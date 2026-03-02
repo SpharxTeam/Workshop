@@ -1,8 +1,7 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # RealSense bag 文件解析核心算法（图像序列版）。
 # 将每一帧保存为 JPEG 图像，不再生成视频文件。
-# =================================================================================
+
 import os
 import cv2
 import numpy as np

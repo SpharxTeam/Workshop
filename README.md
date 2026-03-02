@@ -1,6 +1,6 @@
 # Workshop 数据处理平台
 
-Workshop 是 SpharxHub 平台的核心数据采集和预处理子系统，采用模块化、容器化的架构设计，实现了从原始传感器数据到标准化高质量数据集的完整处理链路。作为物理世界数据工厂，Workshop 为后续的深度加工（Deepness）提供高质量的数据基础。
+Workshop 是 SpharxWorks 平台的核心数据采集和预处理子系统，采用模块化、容器化的架构设计，实现了从原始传感器数据到标准化高质量数据集的完整处理链路。作为物理世界数据工厂，Workshop 为后续的深度加工（Deepness）提供高质量的数据基础。
 
 *"From data intelligence emerges"*
 *"始于数据，终于智能"*
@@ -122,7 +122,8 @@ workshop/
 
 ```bash
 # 1. 克隆项目
-git clone <repository-url>
+git clone https://github.com/spharx/spharxworks.git
+cd spharxworks/workshop
 cd workshop
 
 # 2. 项目初始化
@@ -418,14 +419,14 @@ black --check .
 
 ## 📞 联系方式
 
-- **项目维护**: Spharx Team
-- **技术支持**: support@spharx.com
-- **项目主页**: [Repository URL]
-- **社区交流**: [GitHub Issues & Discussions](https://github.com/your-org/workshop/issues)
+**项目维护**: SPHARX极光感知科技
+**技术支持**: support@spharx.cn
+**项目主页**: [SpharxWorks GitHub](https://github.com/spharx/spharxworks)
+**社区交流**: [GitHub Issues & Discussions](https://github.com/spharx/spharxworks/issues)
 
 ## 🚀 与 Deepness 集成
 
-Workshop 作为 SpharxHub 的数据采集前端，与 Deepness 深度加工系统紧密集成：
+Workshop 作为 SpharxWorks 的数据采集前端，与 Deepness 深度加工系统紧密集成：
 
 ```mermaid
 graph LR
@@ -456,9 +457,9 @@ graph LR
 </p>
 
 <p align="center">
-  <a href="https://github.com/your-org/workshop">GitHub</a> ·
-  <a href="https://docs.your-org.com/workshop">文档</a> ·
-  <a href="https://github.com/your-org/workshop/issues">问题反馈</a>
+  <a href="https://github.com/spharx/spharxworks/tree/main/workshop">GitHub</a> ·
+  <a href="https://docs.spharx.cn/workshop">文档</a> ·
+  <a href="https://github.com/spharx/spharxworks/issues">问题反馈</a>
 </p>
 
 

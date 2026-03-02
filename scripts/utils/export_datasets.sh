@@ -1,10 +1,9 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # 导出所有数据集从 Docker 命名卷到宿主机目录
 # 功能：将 datasets_data 卷中的全部内容复制到宿主机的 ./exports/ 目录
 # 用法：./scripts/utils/export_datasets.sh [目标目录]
 # 示例：./scripts/utils/export_datasets.sh /mnt/d/exported_data
-# =================================================================================
+
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

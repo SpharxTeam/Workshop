@@ -1,11 +1,10 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
-# workshop 完整数据采集流水线运行脚本（produce 版）
+# workshop 完整数据采集流水线运行脚本
 # 功能：按顺序执行 ingest → quality → enhance → calibrate → pack
-#       所有输入输出均在 produce/ 目录下
+# 所有输入输出均在 produce/ 目录下
 # 用法：./scripts/pipeline/run_full.sh [选项] <bag文件名> [场景ID]
 # 示例：./scripts/pipeline/run_full.sh d435i_walking.bag scene_001
-# =================================================================================
+
 set -e
 
 export COMPOSE_PROJECT_NAME=workshop

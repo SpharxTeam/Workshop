@@ -1,8 +1,7 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # 监控面板主应用
 # 说明：监控面板主应用
-# =================================================================================
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px

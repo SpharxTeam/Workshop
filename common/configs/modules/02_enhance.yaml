@@ -1,7 +1,6 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # 02_enhance 模块配置文件
-# =================================================================================
+
 yolo:
   model: "yolov8n.pt"
   conf_threshold: 0.25

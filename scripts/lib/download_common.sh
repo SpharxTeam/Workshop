@@ -1,9 +1,8 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # 通用 GitHub 源码下载函数库
 # 提供 download_repo 函数，支持官方 git、官方 ZIP、镜像 git 三种方式
 # 所有下载操作均输出实时进度
-# =================================================================================
+
 # 加载日志函数（如果外部未提供，则定义）
 if ! type log_info &>/dev/null; then
     if [ -t 1 ]; then

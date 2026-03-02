@@ -1,9 +1,8 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # workshop 生产线一键部署脚本
 # 功能：拉取代码、下载模型、构建镜像、启动服务
 # 用法：./scripts/deploy/workshop_deploy.sh [--workspace PATH] [--repo URL] [--branch NAME]
-# =================================================================================
+
 set -e
 
 # 颜色定义

@@ -1,8 +1,7 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # workshop 增强模块 (02_enhance)
 # 基于 workshop-base（已包含 ffmpeg 和完整 OpenCV）
-# =================================================================================
+
 FROM workshop-base:latest
 
 ENV PYTHONPATH=/app/common/scripts

@@ -1,8 +1,7 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # 同步验证器
 # 验证多相机系统的时间同步精度和数据一致性
-# =================================================================================
+
 import time
 import numpy as np
 from typing import List, Dict, Tuple, Optional

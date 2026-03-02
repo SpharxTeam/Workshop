@@ -1,7 +1,6 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
-# YOLOv8 目标检测核心算法。
-# =================================================================================
+# YOLOv8 目标检测核心算法
+
 import os
 import cv2
 import json

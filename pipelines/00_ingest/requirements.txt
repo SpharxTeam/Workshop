@@ -1,2 +1,4 @@
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+
 pyrealsense2>=2.56.4
 pandas>=2.2.0

@@ -1,10 +1,7 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# ============================================================================
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
 # workshop 生产线 Makefile
-# 目标：自动化构建所有 Docker 镜像，支持模型下载（可选）
+# workshop 生产线 Makefile
+# 目标：自动化构建、测试、文档生成等
 # 用法：
 #   make all        # 构建所有（默认）
 #   make base       # 构建基础镜像
@@ -13,36 +10,28 @@
 #   make enhance    # 构建增强模块
 #   make calibrate  # 构建标定模块
 #   make pack       # 构建打包模块
-#   make delivery   # 构建交付模块（预留）
-#   make models     # 下载 YOLO 模型（需网络）
+#   make delivery   # 构建交付模块
+#   make test       # 运行单元测试
+#   make test-integration # 运行集成测试
+#   make test-all   # 运行所有测试
+#   make docs       # 构建 Sphinx 文档
 #   make clean      # 删除所有 workshop 镜像
 #   make clean-all  # 删除镜像并清理 Docker 构建缓存
-# ============================================================================
 
-.PHONY: all base ingest quality enhance calibrate pack delivery models clean clean-all
+.PHONY: all base ingest quality enhance calibrate pack delivery \
+        test test-integration test-all docs clean clean-all
 
-# 项目根目录（相对于 Makefile 的位置）
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
-# 定义模块列表（名称:子目录:镜像标签）
-MODULES := \
-    base:base:workshop-base \
-    ingest:pipelines/00_ingest:workshop-ingest \
-    quality:pipelines/01_quality:workshop-quality \
-    enhance:pipelines/02_enhance:workshop-enhance \
-    calibrate:pipelines/03_calibrate:workshop-calibrate \
-    pack:pipelines/04_pack:workshop-pack \
-    delivery:pipelines/05_delivery:workshop-delivery
-
-# 默认目标：构建所有模块
-all: $(foreach module,$(filter-out base,$(MODULES)),$(word 1,$(subst :, ,$(module))))
+# 默认目标：构建所有镜像
+all: base ingest quality enhance calibrate pack delivery
 	@echo "🎉 所有镜像构建完成！"
 	@docker images --filter=reference='workshop-*' --format="table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
 
 # 构建基础镜像
 base:
 	@echo "🔨 构建基础镜像 workshop-base ..."
-	@docker build -t workshop-base -f base/Dockerfile .
+	@docker build --no-cache -t workshop-base -f base/Dockerfile .
 
 # 构建数据导入模块
 ingest: base
@@ -69,22 +58,36 @@ pack: base
 	@echo "🔨 构建打包模块 workshop-pack ..."
 	@docker build -t workshop-pack -f pipelines/04_pack/Dockerfile .
 
-# 构建交付模块（预留）
+# 构建交付模块
 delivery: base
 	@echo "🔨 构建交付模块 workshop-delivery ..."
 	@docker build -t workshop-delivery -f pipelines/05_delivery/Dockerfile .
 
-# 下载 YOLO 模型（需网络）
-models:
-	@echo "📥 下载 YOLO 模型到 partdata/models ..."
-	@$(ROOT_DIR)/scripts/download/download_models.sh
+# 运行单元测试
+test:
+	@echo "🧪 运行单元测试..."
+	@PYTHONPATH=$(ROOT_DIR) pytest tests/unit -v --cov=pipelines --cov-report=term-missing
+
+# 运行集成测试
+test-integration:
+	@echo "🧪 运行集成测试..."
+	@PYTHONPATH=$(ROOT_DIR) pytest tests/integration -v
+
+# 运行所有测试
+test-all: test test-integration
+
+# 构建 Sphinx 文档
+docs:
+	@echo "📖 构建文档..."
+	@cd docs && make html
+	@echo "文档已生成在 docs/build/html/index.html"
 
 # 删除所有 workshop 镜像
 clean:
 	@echo "🧹 删除 workshop 相关镜像..."
 	@docker images -q --filter='reference=workshop-*' | xargs -r docker rmi -f
 
-# 删除镜像并清理 Docker 构建缓存
+# 删除镜像并清理构建缓存
 clean-all: clean
 	@echo "🧹 清理 Docker 构建缓存..."
 	@docker builder prune -a -f

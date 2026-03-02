@@ -1,11 +1,6 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# 打包模块主脚本：将处理后的场景数据整理成数据集包，生成 manifest.json
 
-#!/usr/bin/env python3
-"""
-打包模块主脚本：将处理后的场景数据整理成数据集包，生成 manifest.json。
-"""
 import argparse
 import os
 import sys

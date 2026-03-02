@@ -1,7 +1,6 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
-# Workshop 模型下载脚本（最终修复版）
-# =================================================================================
+# Workshop 模型下载脚本
+
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

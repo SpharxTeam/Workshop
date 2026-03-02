@@ -1,11 +1,6 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
-
-# ============================================================================
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
 # 数据导入模块主脚本。
 # 00_ingest 模块运行器
-# ============================================================================
 
 import argparse
 import os

@@ -1,8 +1,7 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # workshop 数据导入模块 (00_ingest)
 # 基于 workshop-base，实现 RealSense bag 文件解析
-# =================================================================================
+
 FROM workshop-base:latest
 
 ENV PYTHONPATH=/app/common/scripts

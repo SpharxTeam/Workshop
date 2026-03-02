@@ -1,11 +1,6 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# 交付模块主脚本（预留）将打包好的数据集上传至 OSS 并发送通知
 
-#!/usr/bin/env python3
-"""
-交付模块主脚本（预留）：将打包好的数据集上传至 OSS 并发送通知。
-"""
 import argparse
 import os
 import sys

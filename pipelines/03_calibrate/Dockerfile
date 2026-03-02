@@ -1,8 +1,6 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # workshop 标定模块 (03_calibrate)
 # 基于 workshop-base，进行棋盘格内参标定
-# =================================================================================
 
 FROM workshop-base:latest
 

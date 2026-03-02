@@ -1,10 +1,6 @@
-# Copyright (c) 2026 SPHARX . All Rights Reserved.
-# From data intelligence emerges.
-# 始于数据，终于智能。
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# OSS 上传模块（预留）。
 
-"""
-OSS 上传模块（预留）。
-"""
 import os
 import logging
 
