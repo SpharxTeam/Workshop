@@ -17,6 +17,7 @@ show_help() {
     echo ""
     echo "选项:"
     echo "  --config CONFIG_PATH   指定配置文件路径（默认 /configs/pipeline_config.yaml）"
+    echo "  --streaming            启用流式处理模式"
     echo "  -h, --help             显示帮助信息"
     echo ""
     echo "参数:"
@@ -29,6 +30,7 @@ show_help() {
 BAG_NAME=""
 SCENE_ID=""
 CONFIG_PATH="/configs/pipeline_config.yaml"
+STREAMING_MODE="false"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
@@ -38,6 +40,10 @@ while [[ $# -gt 0 ]]; do
         --config)
             CONFIG_PATH="$2"
             shift 2
+            ;;
+        --streaming)
+            STREAMING_MODE="true"
+            shift
             ;;
         -h|--help)
             show_help
@@ -105,9 +111,19 @@ else
 fi
 
 # 确保模型文件存在（提示）
-if [ ! -f "partdata/models/yolov8n.pt" ]; then
-    log_warn "模型文件 partdata/models/yolov8n.pt 不存在，enhance 模块将失败！"
+MODEL_FILE="partdata/models/yolov8n.pt"
+if [ ! -f "$MODEL_FILE" ]; then
+    log_warn "模型文件 $MODEL_FILE 不存在，enhance 模块将失败！"
     log_info "请先运行 ./scripts/download/download_models.sh 下载模型"
+fi
+
+# 检查分割模型（如果配置中使用）
+if grep -q "use_enhanced_segmentation: true" common/configs/pipeline_config.yaml 2>/dev/null; then
+    SEG_MODEL="partdata/models/yolov8n-seg.pt"
+    if [ ! -f "$SEG_MODEL" ]; then
+        log_warn "配置启用了增强分割，但分割模型 $SEG_MODEL 不存在！"
+        log_info "请运行 ./scripts/download/download_models.sh --all 下载分割模型"
+    fi
 fi
 
 log_info "========================================="
@@ -117,6 +133,7 @@ log_info "容器内 bag 路径: $CONTAINER_BAG_PATH"
 log_info "配置文件: $CONFIG_PATH"
 log_info "中间数据目录: produce/output/processed"
 log_info "最终数据集目录: produce/output/datasets"
+log_info "流式模式: $STREAMING_MODE"
 log_info "========================================="
 
 # 1. Ingest
@@ -156,14 +173,32 @@ if ! docker-compose run --rm quality \
     exit 1
 fi
 
-# 3. Enhance
-log_info "[3/5] 运行 enhance ..."
-if ! docker-compose run --rm enhance \
-    --input "/data/processed/$SCENE_ID" \
-    --output "/data/processed/$SCENE_ID/enhanced" \
-    --config "$CONFIG_PATH"; then
-    log_error "Enhance 失败"
-    exit 1
+# 3. Enhance (可选择流式模式)
+if [ "$STREAMING_MODE" = "true" ]; then
+    log_info "[3/5] 运行 enhance (流式模式) ..."
+    # 使用容器直接运行流式脚本，无需宿主机虚拟环境
+    docker run --rm \
+        -v "$PROJECT_ROOT/produce/output/processed:/data/processed" \
+        -v "$PROJECT_ROOT/partdata/models:/data/models" \
+        -v "$PROJECT_ROOT:/workspace" \
+        -w /workspace \
+        --entrypoint python \
+        workshop-base \
+        scripts/streaming/run_streaming.py \
+            --input "/data/processed/$SCENE_ID/rgb" \
+            --output "/data/processed/$SCENE_ID/enhanced" \
+            --model /data/models/yolov8n.pt \
+            --config "$CONFIG_PATH" \
+            --queue-size 30
+else
+    log_info "[3/5] 运行 enhance (传统模式) ..."
+    if ! docker-compose run --rm enhance \
+        --input "/data/processed/$SCENE_ID" \
+        --output "/data/processed/$SCENE_ID/enhanced" \
+        --config "$CONFIG_PATH"; then
+        log_error "Enhance 失败"
+        exit 1
+    fi
 fi
 
 # 4. Calibrate

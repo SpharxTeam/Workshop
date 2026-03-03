@@ -10,66 +10,100 @@ source "$SCRIPT_DIR/../lib/workshop_common.sh"
 PROJECT_ROOT="$(get_project_root)"
 MODEL_DIR="$PROJECT_ROOT/partdata/models"
 
-log_info "=== Workshop 模型下载脚本 ==="
+log_info "=== Workshop 模型下载脚本（完整版） ==="
 log_info "模型将保存到: $MODEL_DIR"
 ensure_dir "$MODEL_DIR"
 
-# 定义模型信息（名称 | 预期最小大小字节）
-MODEL_NAME="yolov8n.pt"
-EXPECTED_MIN_SIZE=6000000  # 约 6MB
-
-# 定义多个下载源 URL（按优先级排序）
-DOWNLOAD_URLS=(
-    "https://mirrors.tuna.tsinghua.edu.cn/github-release/ultralytics/assets/v8.3.0/yolov8n.pt"
-    "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt"
-    "https://hub.fastgit.xyz/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt"
-    "https://ghproxy.com/https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt"
-    "https://download.fastgit.org/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt"
+# 定义模型列表（名称 | 版本标签 | 最小大小（字节））
+# 版本标签可随时更新，URL 中的版本号将替换为 ${version}
+MODELS=(
+    "yolov8n.pt|v8.3.0|5000000"
+    "yolov8n-seg.pt|v8.3.0|5000000"
 )
 
-download_model() {
-    local target_file="$MODEL_DIR/$MODEL_NAME"
+# 镜像源列表（按优先级）
+# 构造方式：镜像源 + "/ultralytics/assets/releases/download/${version}/${model_name}"
+MIRRORS=(
+    "https://mirrors.tuna.tsinghua.edu.cn/github-release"
+    "https://github.com"
+    "https://hub.fastgit.xyz"
+    "https://ghproxy.com/https://github.com"
+    "https://download.fastgit.org"
+)
 
-    # 如果文件已存在且大小合理，则跳过
+# 下载单个模型
+download_model() {
+    local model_name="$1"
+    local version="$2"
+    local min_size="$3"
+    local target_file="$MODEL_DIR/$model_name"
+
+    # 如果文件已存在且大小大于最小要求，则跳过
     if [ -f "$target_file" ]; then
         local actual_size=$(wc -c < "$target_file" 2>/dev/null || echo 0)
-        if [ "$actual_size" -ge "$EXPECTED_MIN_SIZE" ] 2>/dev/null; then
-            log_info "$MODEL_NAME 已存在且大小正常（${actual_size} 字节），跳过下载"
+        if [ "$actual_size" -ge "$min_size" ] 2>/dev/null; then
+            log_info "$model_name 已存在且大小正常（${actual_size} 字节），跳过下载"
             return 0
         else
-            log_warn "$MODEL_NAME 文件不完整（${actual_size} 字节），重新下载"
+            log_warn "$model_name 文件不完整（${actual_size} 字节），重新下载"
             rm -f "$target_file"
         fi
     fi
 
-    log_info "开始下载 $MODEL_NAME ..."
+    log_info "开始下载 $model_name (版本 $version) ..."
 
-    for url in "${DOWNLOAD_URLS[@]}"; do
+    # 遍历镜像源
+    for mirror in "${MIRRORS[@]}"; do
+        # 构造下载 URL
+        # 注意：清华源的路径为 /github-release/ultralytics/assets/${version}/${model_name}
+        # GitHub 官方路径为 /ultralytics/assets/releases/download/${version}/${model_name}
+        # 需要根据镜像特点调整，但多数镜像直接拼接即可。
+        # 这里采用统一拼接：${mirror}/ultralytics/assets/releases/download/${version}/${model_name}
+        # 但清华源需要特殊处理，因为它使用了 /github-release/ 结构
+        if [[ "$mirror" == *"tuna"* ]]; then
+            url="${mirror}/ultralytics/assets/${version}/${model_name}"
+        else
+            url="${mirror}/ultralytics/assets/releases/download/${version}/${model_name}"
+        fi
+
         log_info "尝试从 $url 下载"
         # 使用 wget 下载，显示进度，超时 30 秒，重试 2 次
         if wget --progress=dot:giga --timeout=30 --tries=2 -O "$target_file" "$url"; then
             local downloaded_size=$(wc -c < "$target_file" 2>/dev/null || echo 0)
-            if [ "$downloaded_size" -ge "$EXPECTED_MIN_SIZE" ] 2>/dev/null; then
-                log_success "$MODEL_NAME 下载成功（${downloaded_size} 字节）"
+            if [ "$downloaded_size" -ge "$min_size" ] 2>/dev/null; then
+                log_success "$model_name 下载成功（${downloaded_size} 字节）"
                 return 0
             else
-                log_warn "下载文件过小（${downloaded_size} 字节），可能不完整"
+                log_warn "从 $url 下载的文件过小（${downloaded_size} 字节），可能不完整"
                 rm -f "$target_file"
             fi
         else
-            log_warn "从 $url 下载失败，尝试下一个源"
+            log_warn "从 $url 下载失败，尝试下一个镜像"
             rm -f "$target_file" 2>/dev/null
         fi
     done
 
-    log_error "所有下载源均无法成功下载 $MODEL_NAME"
+    log_error "所有镜像源均无法成功下载 $model_name"
     return 1
 }
 
-# 执行下载
-if download_model; then
-    log_success "模型下载完成"
-else
-    log_error "模型下载失败，请检查网络或手动下载"
-    exit 1
-fi
+# 主循环：下载所有模型
+main() {
+    local overall_success=0
+    for entry in "${MODELS[@]}"; do
+        IFS='|' read -r name version min_size <<< "$entry"
+        if ! download_model "$name" "$version" "$min_size"; then
+            log_error "模型 $name 下载失败"
+            overall_success=1
+        fi
+    done
+
+    if [ $overall_success -eq 0 ]; then
+        log_success "所有模型下载完成"
+    else
+        log_error "部分模型下载失败，请检查网络或手动下载"
+        exit 1
+    fi
+}
+
+main "$@"

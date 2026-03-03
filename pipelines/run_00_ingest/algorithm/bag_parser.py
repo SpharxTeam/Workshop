@@ -1,6 +1,6 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# RealSense bag 文件解析核心算法（图像序列版）。
-# 将每一帧保存为 JPEG 图像，不再生成视频文件。
+# RealSense bag 文件解析核心算法（图像序列版 + 压缩优化）
+# 将每一帧保存为压缩图像（WebP/PNG），并生成预览视频
 
 import os
 import cv2
@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pyrealsense2 as rs
 import logging
+from .image_compressor import ImageCompressor, StreamCompressor
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,11 @@ def parse_bag(bag_path, output_dir, config=None):
     logger.info(f"RGB 图像保存目录: {rgb_dir}")
     logger.info(f"深度图保存目录: {depth_dir}")
 
+    # 初始化压缩器（从配置读取预设）
+    quality_preset = config.get('quality_preset', 'production') if config else 'production'
+    compressor = ImageCompressor(quality_preset)
+    logger.info(f"图像压缩预设: {quality_preset} (RGB: {compressor.rgb_format}, 深度: {compressor.depth_format})")
+
     pipeline = rs.pipeline()
     cfg = rs.config()
     try:
@@ -39,6 +45,7 @@ def parse_bag(bag_path, output_dir, config=None):
     imu_data = []
     frame_count = 0
     saved_frames = 0
+    saved_sizes = []  # 记录每帧大小用于统计
 
     try:
         profile = pipeline.start(cfg)
@@ -57,17 +64,22 @@ def parse_bag(bag_path, output_dir, config=None):
                 color_frame = frames.get_color_frame()
                 if color_frame:
                     color_image = np.asanyarray(color_frame.get_data())
-                    # 保存 RGB 图像为 JPEG
+                    # 保存 RGB 图像（使用压缩器）
                     rgb_path = os.path.join(rgb_dir, f"frame_{frame_count:06d}.jpg")
-                    cv2.imwrite(rgb_path, color_image, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                    timestamps.append(timestamp_ms)
-                    saved_frames += 1
+                    success, size = compressor.save_rgb(color_image, rgb_path)
+                    if success:
+                        timestamps.append(timestamp_ms)
+                        saved_frames += 1
+                        saved_sizes.append(size)
 
                 depth_frame = frames.get_depth_frame()
                 if depth_frame:
                     depth_image = np.asanyarray(depth_frame.get_data())
                     depth_path = os.path.join(depth_dir, f"frame_{frame_count:06d}.png")
-                    cv2.imwrite(depth_path, depth_image)
+                    success, size = compressor.save_depth(depth_image, depth_path)
+                    if success:
+                        # 深度图大小不计入 saved_frames，但可记录
+                        pass
 
                 imu_frame = frames.first_or_default(rs.stream.motion)
                 if imu_frame:
@@ -106,6 +118,20 @@ def parse_bag(bag_path, output_dir, config=None):
         logger.info(f"IMU 数据已保存，共 {len(imu_data)} 条")
     else:
         logger.info("bag 中未找到 IMU 数据")
+
+    # 统计信息
+    if saved_sizes:
+        avg_size = np.mean(saved_sizes)
+        total_mb = sum(saved_sizes) / (1024 * 1024)
+        logger.info(f"图像压缩统计: 平均每帧 {avg_size:.0f} 字节，总计 {total_mb:.2f} MB")
+
+    # 生成预览视频（可选）
+    preview_dir = os.path.join(output_dir, "preview")
+    os.makedirs(preview_dir, exist_ok=True)
+    preview_path = os.path.join(preview_dir, "preview.mp4")
+    stream_compressor = StreamCompressor()
+    if stream_compressor.compress_video(rgb_dir, preview_path, fps=30):
+        logger.info(f"预览视频已生成: {preview_path}")
 
     logger.info(f"解析完成：总帧数 {frame_count}，保存图像 {saved_frames} 帧")
     return True
