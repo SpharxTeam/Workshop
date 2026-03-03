@@ -33,10 +33,12 @@ produce/output/datasets/*
 !produce/input/calibration/.gitkeep
 !produce/output/processed/.gitkeep
 !produce/output/datasets/.gitkeep
-
+venv/
 # 旧路径兼容（如有，确保忽略）
 /data/
 /models/
+# Virtual environment
+venv/
 
 # ========================
 # 模型权重文件 

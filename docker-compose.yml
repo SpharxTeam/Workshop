@@ -1,11 +1,10 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# =================================================================================
 # workshop 完整数据采集流水线运行脚本（最终版）
 # 功能：按顺序执行 ingest → quality → enhance → calibrate → pack
-#       所有输出数据存储于 Docker 命名卷中，彻底解决权限问题
+# 所有输出数据存储于 Docker 命名卷中，彻底解决权限问题
 # 用法：./scripts/pipeline/run_full.sh [选项] <宿主机bag路径> [场景ID]
 # 示例：./scripts/pipeline/run_full.sh /mnt/d/Spharx/SpharxWorks/workshop/partdata/tests/raw/stairs.bag scene_001
-# =================================================================================
+
 version: '3.8'
 
 networks:
@@ -28,6 +27,9 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - TZ=Asia/Shanghai
     command: ["--input", "/data/raw/${BAG_FILE}", "--output", "/data/processed/${SCENE_ID}"]
+    build:
+      context: .
+      dockerfile: pipelines/run_00_ingest/Dockerfile
 
   quality:
     image: workshop-quality:latest
@@ -45,6 +47,9 @@ services:
     command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/processed/${SCENE_ID}/quality"]
     depends_on:
       - ingest
+    build:
+      context: .
+      dockerfile: pipelines/run_01_quality/Dockerfile
 
   enhance:
     image: workshop-enhance:latest
@@ -64,6 +69,9 @@ services:
     command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/processed/${SCENE_ID}/enhanced"]
     depends_on:
       - quality
+    build:
+      context: .
+      dockerfile: pipelines/run_02_enhance/Dockerfile
 
   calibrate:
     image: workshop-calibrate:latest
@@ -82,6 +90,9 @@ services:
     command: ["--input", "/data/calibration_images", "--output", "/data/processed/${SCENE_ID}/calib"]
     depends_on:
       - enhance
+    build:
+      context: .
+      dockerfile: pipelines/run_03_calibrate/Dockerfile
 
   pack:
     image: workshop-pack:latest
@@ -100,6 +111,9 @@ services:
     command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/datasets/${SCENE_ID}"]
     depends_on:
       - calibrate
+    build:
+      context: .
+      dockerfile: pipelines/run_04_pack/Dockerfile
 
   delivery:
     image: workshop-delivery:latest
@@ -119,3 +133,6 @@ services:
       - pack
     profiles:
       - delivery
+    build:
+      context: .
+      dockerfile: pipelines/run_05_delivery/Dockerfile

@@ -1,6 +1,5 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
 # workshop 生产线 Makefile
-# workshop 生产线 Makefile
 # 目标：自动化构建、测试、文档生成等
 # 用法：
 #   make all        # 构建所有（默认）
@@ -36,42 +35,42 @@ base:
 # 构建数据导入模块
 ingest: base
 	@echo "🔨 构建数据导入模块 workshop-ingest ..."
-	@docker build -t workshop-ingest -f pipelines/00_ingest/Dockerfile .
+	@docker build -t workshop-ingest -f pipelines/run_00_ingest/Dockerfile .
 
 # 构建质检模块
 quality: base
 	@echo "🔨 构建质检模块 workshop-quality ..."
-	@docker build -t workshop-quality -f pipelines/01_quality/Dockerfile .
+	@docker build -t workshop-quality -f pipelines/run_01_quality/Dockerfile .
 
 # 构建增强模块
 enhance: base
 	@echo "🔨 构建增强模块 workshop-enhance ..."
-	@docker build -t workshop-enhance -f pipelines/02_enhance/Dockerfile .
+	@docker build -t workshop-enhance -f pipelines/run_02_enhance/Dockerfile .
 
 # 构建标定模块
 calibrate: base
 	@echo "🔨 构建标定模块 workshop-calibrate ..."
-	@docker build -t workshop-calibrate -f pipelines/03_calibrate/Dockerfile .
+	@docker build -t workshop-calibrate -f pipelines/run_03_calibrate/Dockerfile .
 
 # 构建打包模块
 pack: base
 	@echo "🔨 构建打包模块 workshop-pack ..."
-	@docker build -t workshop-pack -f pipelines/04_pack/Dockerfile .
+	@docker build -t workshop-pack -f pipelines/run_04_pack/Dockerfile .
 
 # 构建交付模块
 delivery: base
 	@echo "🔨 构建交付模块 workshop-delivery ..."
-	@docker build -t workshop-delivery -f pipelines/05_delivery/Dockerfile .
+	@docker build -t workshop-delivery -f pipelines/run_05_delivery/Dockerfile .
 
 # 运行单元测试
 test:
 	@echo "🧪 运行单元测试..."
-	@PYTHONPATH=$(ROOT_DIR) pytest tests/unit -v --cov=pipelines --cov-report=term-missing
+	@PYTHONPATH=$(ROOT_DIR) python -m pytest tests/unit -c tests/pytest.ini -v --cov=pipelines --cov-report=term-missing
 
 # 运行集成测试
 test-integration:
 	@echo "🧪 运行集成测试..."
-	@PYTHONPATH=$(ROOT_DIR) pytest tests/integration -v
+	@PYTHONPATH=$(ROOT_DIR) python -m pytest tests/integration -c tests/pytest.ini -v
 
 # 运行所有测试
 test-all: test test-integration
