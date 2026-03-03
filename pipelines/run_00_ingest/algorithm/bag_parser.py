@@ -65,7 +65,8 @@ def parse_bag(bag_path, output_dir, config=None):
                 if color_frame:
                     color_image = np.asanyarray(color_frame.get_data())
                     # 保存 RGB 图像（使用压缩器）
-                    rgb_path = os.path.join(rgb_dir, f"frame_{frame_count:06d}.jpg")
+                    # 注意：compressor.save_rgb 会自动根据格式确定扩展名
+                    rgb_path = os.path.join(rgb_dir, f"frame_{frame_count:06d}.jpg")  # 临时使用 .jpg，但实际格式由压缩器决定
                     success, size = compressor.save_rgb(color_image, rgb_path)
                     if success:
                         timestamps.append(timestamp_ms)
@@ -130,8 +131,19 @@ def parse_bag(bag_path, output_dir, config=None):
     os.makedirs(preview_dir, exist_ok=True)
     preview_path = os.path.join(preview_dir, "preview.mp4")
     stream_compressor = StreamCompressor()
-    if stream_compressor.compress_video(rgb_dir, preview_path, fps=30):
+    
+    # 确定实际图像格式
+    if compressor.rgb_format == 'webp':
+        image_pattern = "*.webp"
+    elif compressor.rgb_format == 'png':
+        image_pattern = "*.png"
+    else:
+        image_pattern = "*.jpg"
+    
+    if stream_compressor.compress_video(rgb_dir, preview_path, fps=30, image_pattern=image_pattern):
         logger.info(f"预览视频已生成: {preview_path}")
+    else:
+        logger.warning("预览视频生成失败，但不影响主流程")
 
     logger.info(f"解析完成：总帧数 {frame_count}，保存图像 {saved_frames} 帧")
     return True

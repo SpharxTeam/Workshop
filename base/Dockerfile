@@ -1,5 +1,5 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# workshop 基础镜像
+# workshop基础镜像，包含系统依赖、pip镜像配置和通用Python包
 
 FROM python:3.10-slim
 
@@ -49,15 +49,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && echo "Asia/Shanghai" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-# 配置 pip 镜像（优先使用清华源）
+# 配置 pip 镜像（仅作后备，实际构建使用离线包）
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 安装 Python 包（确保 OpenCV 具有完整解码能力）
+# 安装通用 Python 包（所有模块共享）
 RUN pip install --no-cache-dir \
     numpy==1.26.0 \
     pyyaml==6.0.2 \
-    opencv-python==4.10.0.84 \
-    opencv-contrib-python==4.10.0.84  # 包含更多解码器
+    opencv-python==4.10.0.84
 
 # 创建公共目录结构
 RUN mkdir -p /app/common/{configs,schemas,scripts,tests,logs,models} \

@@ -55,24 +55,25 @@ class ImageCompressor:
         """
         保存RGB图像，返回(成功标志, 文件大小)
         """
-        original_path = path
+        # 根据格式调整实际文件扩展名
+        base, ext = os.path.splitext(path)
         if self.rgb_format == 'webp':
-            path = path.replace('.jpg', '.webp').replace('.png', '.webp')
-            success = cv2.imwrite(path, image, [
+            actual_path = base + '.webp'
+            success = cv2.imwrite(actual_path, image, [
                 cv2.IMWRITE_WEBP_QUALITY, self.rgb_params['quality']
             ])
         elif self.rgb_format == 'jpg':
-            path = path.replace('.webp', '.jpg').replace('.png', '.jpg')
-            success = cv2.imwrite(path, image, [
+            actual_path = base + '.jpg'
+            success = cv2.imwrite(actual_path, image, [
                 cv2.IMWRITE_JPEG_QUALITY, self.rgb_params['quality']
             ])
         else:  # png
-            path = path.replace('.webp', '.png').replace('.jpg', '.png')
-            success = cv2.imwrite(path, image)
+            actual_path = base + '.png'
+            success = cv2.imwrite(actual_path, image)
         
-        if success and os.path.exists(path):
-            size = os.path.getsize(path)
-            logger.debug(f"保存图像 {path}，大小: {size} 字节，格式: {self.rgb_format}")
+        if success and os.path.exists(actual_path):
+            size = os.path.getsize(actual_path)
+            logger.debug(f"保存图像 {actual_path}，大小: {size} 字节，格式: {self.rgb_format}")
             return True, size
         return False, 0
     
@@ -103,18 +104,23 @@ class StreamCompressor:
     def __init__(self, target_bitrate: Optional[int] = None):
         self.target_bitrate = target_bitrate
     
-    def compress_video(self, frame_dir: str, output_path: str, fps: int = 30):
+    def compress_video(self, frame_dir: str, output_path: str, fps: int = 30, image_pattern: str = "*.jpg"):
         """
-        将图像序列压缩为视频（H.264/HEVC）
-        用于预览或传输，不作为主要存储
+        将图像序列压缩为视频（H.264）
+        Args:
+            frame_dir: 图像目录
+            output_path: 输出视频路径
+            fps: 帧率
+            image_pattern: 图像文件匹配模式，如 "*.jpg"
         """
-        # 使用ffmpeg进行编码
         import subprocess
+        # 构建输入文件模式
+        input_pattern = os.path.join(frame_dir, image_pattern)
         cmd = [
             'ffmpeg', '-y',
             '-framerate', str(fps),
             '-pattern_type', 'glob',
-            '-i', f'{frame_dir}/*.jpg',
+            '-i', input_pattern,
             '-c:v', 'libx264',      # H.264编码
             '-preset', 'medium',
             '-crf', '23',            # 质量参数（越小质量越高）
@@ -124,6 +130,7 @@ class StreamCompressor:
         if self.target_bitrate:
             cmd.extend(['-b:v', self.target_bitrate])
         
+        logger.debug(f"执行 ffmpeg 命令: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             logger.error(f"视频压缩失败: {result.stderr}")
