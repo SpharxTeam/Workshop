@@ -13,7 +13,6 @@ COPY common/configs /app/common/configs
 COPY pipelines/run_03_calibrate /app/module
 COPY partdata/deps /app/deps
 
-# 该模块 requirements.txt 可能为空，但为了统一流程，仍尝试安装
 RUN pip install --no-cache-dir --no-index --find-links /app/deps -r /app/module/requirements.txt || true
 RUN mkdir -p /app/logs && chmod 777 /app/logs
 

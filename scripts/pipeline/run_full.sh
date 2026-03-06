@@ -95,7 +95,8 @@ PROCESSED_DIR="$PROJECT_ROOT/produce/output/processed"
 DATASETS_DIR="$PROJECT_ROOT/produce/output/datasets"
 
 # ---------- 预检 ----------
-log_info "========== 运行环境预检 =========="
+print_section "运行环境预检"
+
 # 检查 bag 文件
 if [ ! -f "$HOST_BAG_PATH" ]; then
     log_error "宿主机 bag 文件不存在: $HOST_BAG_PATH"
@@ -111,9 +112,9 @@ available_kb=$(df "$PROJECT_ROOT" | awk 'NR==2 {print $4}')
 if [ "$available_kb" -lt 10485760 ]; then
     log_warn "磁盘可用空间不足 10GB，当前仅 $(numfmt --to=iec $((available_kb*1024)))"
 fi
-# 检查模型文件
-DETECT_MODEL="partdata/models/yolov8n.pt"
-SEG_MODEL="partdata/models/yolov8n-seg.pt"
+# 检查模型文件（新路径）
+DETECT_MODEL="$PROJECT_ROOT/partdata/model/weights/yolo/current/yolov8n.pt"
+SEG_MODEL="$PROJECT_ROOT/partdata/model/weights/yolo/current/yolov8n-seg.pt"
 if [ ! -f "$SEG_MODEL" ]; then
     log_warn "分割模型 $SEG_MODEL 不存在，将使用检测模型 $DETECT_MODEL"
     if [ ! -f "$DETECT_MODEL" ]; then
@@ -135,7 +136,7 @@ fi
 export SCENE_ID
 export BAG_FILE="$BAG_NAME"
 
-# ---------- 获取当前用户 UID/GID（用于容器内用户映射） ----------
+# ---------- 获取当前用户 UID/GID ----------
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 
@@ -159,43 +160,39 @@ else
     log_info "标定图像目录已存在文件，跳过生成"
 fi
 
-# ---------- 开始计时 ----------
-START_TIME=$(date +%s)
-log_info "========================================="
-log_info "开始处理场景: $SCENE_ID"
-log_info "宿主机 bag 路径: $HOST_BAG_PATH"
-log_info "配置文件: $CONFIG_PATH"
-log_info "中间数据目录: $PROCESSED_DIR"
-log_info "最终数据集目录: $DATASETS_DIR"
+# ---------- 开始处理场景 ----------
+print_section "开始处理场景: $SCENE_ID"
+START_TIME=$(date +%s)   # 记录整体开始时间
+log_info "输入 bag: $HOST_BAG_PATH"
+log_info "输出目录: $DATASETS_DIR/$SCENE_ID"
 log_info "流式模式: $STREAMING_MODE"
-log_info "模块超时: ${MODULE_TIMEOUT}s"
-log_info "宿主 UID:GID = $HOST_UID:$HOST_GID"
-log_info "========================================="
 
-# ---------- 定义执行函数（带超时） ----------
+# ---------- 定义执行函数 ----------
 run_module() {
-    local step_name=$1
-    local cmd=$2
-    log_info "[$step_name] 开始执行..."
-    # 使用 timeout 命令限制执行时间
-    if ! timeout "$MODULE_TIMEOUT" bash -c "$cmd"; then
-        log_error "[$step_name] 执行失败（可能超时或错误）"
+    local step_num=$1
+    local step_name=$2
+    local step_desc=$3
+    local cmd=$4
+    step_start "$step_num" "$step_desc"
+    if ! eval "$cmd"; then
+        log_error "步骤 $step_num 执行失败"
         exit 1
     fi
-    log_success "[$step_name] 完成"
+    step_end "$step_num"
 }
 
-# ---------- 1. Ingest ----------
-run_module "1/5 Ingest" "
-docker-compose run --rm \
+# 1. Ingest
+run_module "1/5" "Ingest" "解析 bag 文件，提取 RGB/深度图像" \
+"docker-compose run --rm \
     -e HOST_UID=$HOST_UID -e HOST_GID=$HOST_GID \
+    -e SCENE_ID=$SCENE_ID \
+    -e BAG_FILE=$BAG_NAME \
     ingest \
-    --input \"$CONTAINER_BAG_PATH\" \
-    --output \"/data/processed/$SCENE_ID\" \
-    --config \"$CONFIG_PATH\"
-"
+    --input $CONTAINER_BAG_PATH \
+    --output /data/processed/$SCENE_ID \
+    --config $CONFIG_PATH"
 
-# ---------- 验证 Ingest 输出 ----------
+# 验证 Ingest 输出
 log_info "验证 Ingest 输出..."
 FRAME_COUNT=$(docker-compose run --rm --entrypoint sh ingest -c "find /data/processed/$SCENE_ID/rgb -type f \( -name '*.jpg' -o -name '*.webp' -o -name '*.png' \) 2>/dev/null | wc -l")
 if [ "$FRAME_COUNT" -gt 0 ]; then
@@ -204,70 +201,59 @@ else
     log_error "RGB 图像目录为空"
     exit 1
 fi
-log_success "Ingest 输出验证通过"
 
-# ---------- 2. Quality ----------
-run_module "2/5 Quality" "
-docker-compose run --rm \
+# 2. Quality
+run_module "2/5" "Quality" "质量检测（模糊、曝光、丢帧）" \
+"docker-compose run --rm \
     -e HOST_UID=$HOST_UID -e HOST_GID=$HOST_GID \
     quality \
-    --input \"/data/processed/$SCENE_ID\" \
-    --output \"/data/processed/$SCENE_ID/quality\" \
-    --config \"$CONFIG_PATH\"
-"
+    --input /data/processed/$SCENE_ID \
+    --output /data/processed/$SCENE_ID/quality \
+    --config $CONFIG_PATH"
 
-# ---------- 3. Enhance ----------
+# 3. Enhance
 if [ "$STREAMING_MODE" = "true" ]; then
-    run_module "3/5 Enhance (流式模式，使用分割模型)" "
-    docker run --rm \
-        -v \"$PROJECT_ROOT/produce/output/processed:/data/processed\" \
-        -v \"$PROJECT_ROOT/partdata/models:/data/models\" \
-        -v \"$PROJECT_ROOT:/workspace\" \
+    run_module "3/5" "Enhance (流式)" "流式目标检测（使用分割模型）" \
+    "docker run --rm \
+        -v $PROJECT_ROOT/produce/output/processed:/data/processed \
+        -v $PROJECT_ROOT/partdata/model/weights:/data/model/weights:ro \
+        -v $PROJECT_ROOT:/workspace \
         -w /workspace \
         --entrypoint python \
         workshop-enhance \
         scripts/streaming/run_streaming.py \
-            --input \"/data/processed/$SCENE_ID/rgb\" \
-            --output \"/data/processed/$SCENE_ID/enhanced\" \
-            --model /data/models/yolov8n-seg.pt \
-            --config \"$CONFIG_PATH\" \
-            --queue-size 30
-    "
+            --input /data/processed/$SCENE_ID/rgb \
+            --output /data/processed/$SCENE_ID/enhanced \
+            --model /data/model/weights/yolo/current/yolov8n-seg.pt \
+            --config $CONFIG_PATH \
+            --queue-size 30"
 else
-    run_module "3/5 Enhance (传统模式)" "
-    docker-compose run --rm \
+    run_module "3/5" "Enhance" "传统目标检测" \
+    "docker-compose run --rm \
         -e HOST_UID=$HOST_UID -e HOST_GID=$HOST_GID \
         enhance \
-        --input \"/data/processed/$SCENE_ID\" \
-        --output \"/data/processed/$SCENE_ID/enhanced\" \
-        --config \"$CONFIG_PATH\"
-    "
+        --input /data/processed/$SCENE_ID \
+        --output /data/processed/$SCENE_ID/enhanced \
+        --config $CONFIG_PATH"
 fi
 
-# ---------- 验证 Enhance 输出 ----------
-if [ ! -f "$PROCESSED_DIR/$SCENE_ID/enhanced/annotations.json" ]; then
-    log_warn "Enhance 未生成 annotations.json，可能使用了检测模型或无检测结果"
-fi
-
-# ---------- 4. Calibrate ----------
-run_module "4/5 Calibrate" "
-docker-compose run --rm \
+# 4. Calibrate
+run_module "4/5" "Calibrate" "相机标定（棋盘格）" \
+"docker-compose run --rm \
     -e HOST_UID=$HOST_UID -e HOST_GID=$HOST_GID \
     calibrate \
-    --input \"/data/calibration_images\" \
-    --output \"/data/processed/$SCENE_ID/calib\" \
-    --config \"$CONFIG_PATH\"
-"
+    --input /data/calibration_images \
+    --output /data/processed/$SCENE_ID/calib \
+    --config $CONFIG_PATH"
 
-# ---------- 5. Pack ----------
-run_module "5/5 Pack" "
-docker-compose run --rm \
+# 5. Pack
+run_module "5/5" "Pack" "打包数据集，生成 manifest" \
+"docker-compose run --rm \
     -e HOST_UID=$HOST_UID -e HOST_GID=$HOST_GID \
     pack \
-    --input \"/data/processed/$SCENE_ID\" \
-    --output \"/data/datasets/$SCENE_ID\" \
-    --config \"$CONFIG_PATH\"
-"
+    --input /data/processed/$SCENE_ID \
+    --output /data/datasets/$SCENE_ID \
+    --config $CONFIG_PATH"
 
 # ---------- 最终输出 ----------
 END_TIME=$(date +%s)
@@ -275,14 +261,14 @@ ELAPSED=$((END_TIME - START_TIME))
 DATASET_SIZE=$(du -sh "$DATASETS_DIR/$SCENE_ID" | cut -f1)
 FILE_COUNT=$(find "$DATASETS_DIR/$SCENE_ID" -type f | wc -l)
 
-log_success "========================================="
-log_success "✅ 全部完成！用时 $(($ELAPSED/60))分 $(($ELAPSED%60))秒"
-log_success "场景 $SCENE_ID 的数据集已存储在: $DATASETS_DIR/$SCENE_ID"
-log_success "数据集大小: $DATASET_SIZE，包含 $FILE_COUNT 个文件"
-log_success "您可以查看以下关键文件："
+print_section "处理完成"
+log_success "✅ 场景 $SCENE_ID 的数据集已存储"
+log_success "存储位置: $DATASETS_DIR/$SCENE_ID"
+log_success "总耗时: $(($ELAPSED/60))分 $(($ELAPSED%60))秒"
+log_success "大小: $DATASET_SIZE，文件数: $FILE_COUNT"
+log_success "关键文件："
 log_success "  - 质检报告: $DATASETS_DIR/$SCENE_ID/quality_report.json"
 log_success "  - 标注文件: $DATASETS_DIR/$SCENE_ID/annotations.json"
 log_success "  - 标定结果: $DATASETS_DIR/$SCENE_ID/intrinsics.json"
 log_success "  - 数据清单: $DATASETS_DIR/$SCENE_ID/manifest.json"
-log_success "导出数据: ./scripts/utils/export_datasets.sh"
-log_success "========================================="
+log_success "导出数据: 如需将数据集复制到其他位置，请运行 ./scripts/utils/export_datasets.sh"

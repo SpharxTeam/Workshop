@@ -6,7 +6,7 @@ import os
 import sys
 import logging
 from config_loader import load_config
-from algorithm import generate_quality_report
+from algorithm.quality_analyzer import generate_quality_report
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
 LOG_DIR = "/app/logs"
@@ -23,7 +23,7 @@ logger = logging.getLogger(MODULE_NAME)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="场景目录（包含 rgb/ 子目录）")
+    parser.add_argument("--input", required=True, help="场景目录")
     parser.add_argument("--output", required=True, help="报告输出目录")
     parser.add_argument("--blur_threshold", type=int)
     parser.add_argument("--over_threshold", type=int)

@@ -6,7 +6,8 @@ import os
 import sys
 import logging
 from config_loader import load_config
-from algorithm import upload_dataset, send_notification
+from algorithm.oss_uploader import upload_dataset
+from algorithm.notifier import send_notification
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
 LOG_DIR = "/app/logs"
@@ -30,7 +31,6 @@ def main():
     config = load_config(module_name="05_delivery") if not args.config else load_config(config_path=args.config)
     oss_config = config.get("oss", {})
 
-    # 从环境变量补充
     for key in ["endpoint", "bucket", "access_key_id", "access_key_secret"]:
         if not oss_config.get(key):
             oss_config[key] = os.environ.get(f"OSS_{key.upper()}")

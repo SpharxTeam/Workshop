@@ -6,7 +6,7 @@ import os
 import sys
 import logging
 from config_loader import load_config
-from algorithm import pack_scene
+from algorithm.packer import pack_scene
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
 LOG_DIR = "/app/logs"

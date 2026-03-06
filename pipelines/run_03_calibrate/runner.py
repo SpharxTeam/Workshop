@@ -6,7 +6,7 @@ import os
 import sys
 import logging
 from config_loader import load_config
-from algorithm import calibrate_camera
+from algorithm.camera_calibrator import calibrate_camera
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
 LOG_DIR = "/app/logs"

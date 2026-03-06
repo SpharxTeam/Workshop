@@ -6,10 +6,9 @@ import cv2
 import json
 import numpy as np
 from ultralytics import YOLO
-import logging
-from .segmentation_auditor import SegmentationAuditor, TemporalConsistencyAuditor
+from common.scripts.log_utils import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -21,17 +20,55 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return super().default(obj)
 
+def convert_to_coco(detections_list, model_names, output_path):
+    """将流式检测结果转换为 COCO 格式"""
+    if not detections_list:
+        return None
+    first = detections_list[0]
+    img_width = first.get('width', 0)
+    img_height = first.get('height', 0)
+    coco = {
+        "images": [],
+        "annotations": [],
+        "categories": [{"id": int(i), "name": str(v), "supercategory": "object"} for i, v in enumerate(model_names.values())]
+    }
+    ann_id = 0
+    for item in detections_list:
+        frame_idx = item['frame_idx']
+        frame_name = item['frame_name']
+        coco["images"].append({
+            "id": int(frame_idx),
+            "file_name": str(frame_name),
+            "width": img_width,
+            "height": img_height
+        })
+        for det in item['detections']:
+            x1, y1, x2, y2 = det['bbox']
+            w = x2 - x1
+            h = y2 - y1
+            coco["annotations"].append({
+                "id": int(ann_id),
+                "image_id": int(frame_idx),
+                "category_id": int(det['class_id']),
+                "bbox": [x1, y1, w, h],
+                "area": float(w * h),
+                "segmentation": [],
+                "iscrowd": 0,
+                "score": float(det['confidence'])
+            })
+            ann_id += 1
+    with open(output_path, "w") as f:
+        json.dump(coco, f, indent=2, cls=NumpyEncoder)
+    return coco
+
 def process_video(scene_dir, output_dir, config=None, **kwargs):
-    """
-    处理场景目录中的 RGB 图像序列，生成 COCO 格式标注和分割质量报告。
-    """
     rgb_dir = os.path.join(scene_dir, "rgb")
     if not os.path.exists(rgb_dir):
         raise FileNotFoundError(f"RGB 图像目录不存在: {rgb_dir}")
 
     conf_thres = kwargs.get('conf', config.get('conf_threshold', 0.25))
     model_path = kwargs.get('model', config.get('model_path', 'yolov8n.pt'))
-    # 优先使用环境变量指定的模型路径
+
     env_model = os.environ.get('YOLO_MODEL_PATH')
     if env_model and os.path.exists(env_model):
         model_path = env_model
@@ -42,11 +79,11 @@ def process_video(scene_dir, output_dir, config=None, **kwargs):
             model_path = local_model
             logger.info(f"使用挂载的模型: {model_path}")
         else:
-            logger.error(f"模型文件不存在: {model_path} 或 {local_model}")
+            logger.error(f"模型文件不存在: {model_path}")
             raise FileNotFoundError(f"模型文件 {model_path} 不存在")
 
     is_seg_model = '-seg' in model_path
-    logger.info(f"加载模型 {model_path} (分割模型: {is_seg_model})")
+    logger.info(f"加载模型: {model_path} (分割模型: {is_seg_model})")
     try:
         model = YOLO(model_path)
     except Exception as e:
@@ -58,15 +95,16 @@ def process_video(scene_dir, output_dir, config=None, **kwargs):
     if total_frames == 0:
         raise IOError("RGB 目录中没有图像文件")
 
+    # 尝试读取第一帧获取尺寸，若失败则跳过
     first_frame = cv2.imread(os.path.join(rgb_dir, frame_files[0]))
+    if first_frame is None:
+        raise IOError(f"无法读取第一帧图像: {frame_files[0]}，可能文件损坏")
     height, width = first_frame.shape[:2]
-    logger.info(f"找到 {total_frames} 帧图像，分辨率: {width}x{height}")
+    logger.info(f"找到 {total_frames} 帧，分辨率: {width}x{height}")
 
-    auditor = None
-    consistency_auditor = None
-    if is_seg_model:
-        auditor = SegmentationAuditor(confidence_threshold=conf_thres)
-        consistency_auditor = TemporalConsistencyAuditor(window_size=10)
+    from .segmentation_auditor import SegmentationAuditor, TemporalConsistencyAuditor
+    auditor = SegmentationAuditor(confidence_threshold=conf_thres) if is_seg_model else None
+    consistency_auditor = TemporalConsistencyAuditor(window_size=10) if is_seg_model else None
 
     coco = {
         "images": [],
@@ -84,7 +122,7 @@ def process_video(scene_dir, output_dir, config=None, **kwargs):
         frame_path = os.path.join(rgb_dir, frame_name)
         frame = cv2.imread(frame_path)
         if frame is None:
-            logger.warning(f"无法读取图像 {frame_name}，跳过")
+            logger.warning(f"跳过无法读取的帧: {frame_name}")
             continue
 
         results = model(frame, conf=conf_thres, verbose=False)
@@ -116,22 +154,25 @@ def process_video(scene_dir, output_dir, config=None, **kwargs):
                 ann_id += 1
 
         if is_seg_model and results[0].masks is not None:
-            # 假设取第一个目标的掩码作为示例（实际应处理所有目标）
-            mask = results[0].masks.data[0].cpu().numpy()
-            metrics = auditor.audit_mask(mask, frame)
-            quality_metrics['frame_metrics'].append(metrics)
-            temporal_score = consistency_auditor.audit_temporal_consistency(mask)
-            quality_metrics['temporal_consistency'].append(temporal_score)
+            try:
+                mask = results[0].masks.data[0].cpu().numpy()
+                metrics = auditor.audit_mask(mask, frame)
+                quality_metrics['frame_metrics'].append(metrics)
+                temporal_score = consistency_auditor.audit_temporal_consistency(mask)
+                quality_metrics['temporal_consistency'].append(temporal_score)
+            except Exception as e:
+                logger.warning(f"分割质量审计失败: {e}")
 
-        if frame_id % 100 == 0:
-            logger.info(f"已处理 {frame_id}/{total_frames} 帧")
+        if (frame_id + 1) % 100 == 0:
+            logger.info(f"已处理 {frame_id+1}/{total_frames} 帧")
 
-    logger.info(f"检测完成，共 {ann_id} 个目标")
+    logger.info(f"检测完成，目标总数: {ann_id}")
     os.makedirs(output_dir, exist_ok=True)
+
     out_path = os.path.join(output_dir, "annotations.json")
     with open(out_path, "w") as f:
         json.dump(coco, f, indent=2, cls=NumpyEncoder)
-    logger.info(f"标注已保存: {out_path}")
+    logger.info(f"标注文件已保存")
 
     if is_seg_model and quality_metrics['frame_metrics']:
         quality_metrics['overall_stats'] = {
@@ -143,6 +184,6 @@ def process_video(scene_dir, output_dir, config=None, **kwargs):
         quality_path = os.path.join(output_dir, "segmentation_quality.json")
         with open(quality_path, "w") as f:
             json.dump(quality_metrics, f, indent=2, cls=NumpyEncoder)
-        logger.info(f"分割质量报告已保存: {quality_path}")
+        logger.info(f"分割质量报告已保存")
 
     return True

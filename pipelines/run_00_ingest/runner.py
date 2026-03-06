@@ -7,7 +7,7 @@ import os
 import sys
 import logging
 from config_loader import load_config
-from algorithm import parse_bag
+from algorithm.bag_parser import parse_bag
 
 MODULE_NAME = os.path.basename(__file__).replace('.py', '')
 LOG_DIR = "/app/logs"
@@ -31,7 +31,6 @@ def main():
 
     config = load_config(config_path=args.config) if args.config else {}
     logger.info(f"Python 版本: {sys.version}")
-    logger.info(f"pyrealsense2 版本: {__import__('pyrealsense2').__version__ if hasattr(__import__('pyrealsense2'), '__version__') else 'unknown'}")
 
     try:
         success = parse_bag(args.input, args.output, config)

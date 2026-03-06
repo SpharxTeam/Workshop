@@ -10,6 +10,8 @@ ENV PYTHONPATH=/app/common/scripts
 
 COPY common/scripts /app/common/scripts
 COPY common/configs /app/common/configs
+# 复制模型配置文件（enhance模块需要）
+COPY common/configs/model_config.yaml /app/configs/model_config.yaml
 COPY pipelines/run_02_enhance /app/module
 COPY partdata/deps /app/deps
 
