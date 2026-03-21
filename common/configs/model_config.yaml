@@ -1,0 +1,17 @@
+# common/configs/model_config.yaml
+models:
+  yolo:
+    type: "yolo"
+    description: "YOLOv8 object detection"
+    weight_base: "/data/model/weights/yolo/{version}/yolov8n.pt"
+    default_version: "current"
+    conf_threshold: 0.25
+  sam:
+    type: "sam"
+    description: "Segment Anything Model"
+    weight_base: "/data/model/weights/sam/{version}/sam_vit_h_4b8939.pth"
+    default_version: "v1"
+    enabled: false   # 默认禁用
+
+# 当前默认使用的模型
+default_model: "yolo"

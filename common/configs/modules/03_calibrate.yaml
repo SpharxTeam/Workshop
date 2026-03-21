@@ -1,0 +1,18 @@
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# 03_calibrate 模块配置文件
+
+chessboard:
+  pattern_size: [9, 6] 
+  # 内角点数 (宽, 高)
+  square_size: 0.025    
+  # 方格尺寸（米）
+
+calibration:
+  max_images: 30
+  enable_auto_selection: true
+  reprojection_error_threshold: 0.5
+
+output:
+  save_calibration_files: true
+  calibration_format: "json"
+  include_visualization: true
