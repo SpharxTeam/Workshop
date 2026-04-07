@@ -1,137 +1,276 @@
-# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# workshop 完整数据采集流水线运行脚本（最终版）
-# 功能：按顺序执行 ingest → quality → enhance → calibrate → pack
-# 所有输出数据存储于 Docker 命名卷中，彻底解决权限问题
-# 用法：./scripts/pipeline/run_full.sh [选项] <宿主机bag路径> [场景ID]
-# 示例：./scripts/pipeline/run_full.sh /mnt/d/Spharx/SpharxWorks/workshop/partdata/tests/raw/stairs.bag scene_001
+# ============================================
+# Workshop V2.0 Docker Compose Configuration
+# Production-ready multi-service orchestration
+# ============================================
 
-networks:
-  workshop-net:
-    driver: bridge
+version: '3.8'
 
 services:
-  ingest:
-    image: workshop-ingest:latest
-    container_name: workshop-ingest
-    restart: unless-stopped
-    networks:
-      - workshop-net
-    volumes:
-      - ./produce/input/raw:/data/raw:ro
-      - ./produce/output/processed:/data/processed
-      - ./common/configs:/app/common/configs:ro
-    environment:
-      - PYTHONPATH=/app/common/scripts
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - TZ=Asia/Shanghai
-    command: ["--input", "/data/raw/${BAG_FILE}", "--output", "/data/processed/${SCENE_ID}"]
+  # ============================================
+  # Main Application Service
+  # ============================================
+  workshop-app:
     build:
       context: .
-      dockerfile: pipelines/run_00_ingest/Dockerfile
-
-  quality:
-    image: workshop-quality:latest
-    container_name: workshop-quality
+      dockerfile: Dockerfile
+    image: spharx/workshop-v2:latest
+    container_name: workshop-app
     restart: unless-stopped
-    networks:
-      - workshop-net
-    volumes:
-      - ./produce/output/processed:/data/processed
-      - ./common/configs:/app/common/configs:ro
+    
     environment:
-      - PYTHONPATH=/app/common/scripts
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - TZ=Asia/Shanghai
-    command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/processed/${SCENE_ID}/quality"]
+      - WORKSHOP_ENV=${WORKSHOP_ENV:-production}
+      - WORKSHOP_LOG_LEVEL=${WORKSHOP_LOG_LEVEL:-INFO}
+      - WORKSHOP_DATA_DIR=/app/data
+      - WORKSHOP_LOG_DIR=/app/logs
+      - WORKSHOP_BACKUP_DIR=/app/backups
+      - WORKSHOP_TEMP_DIR=/app/temp
+      # Database (if using in future)
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/workshop.db}
+      # Redis (for caching/job queue)
+      - REDIS_URL=redis://redis:6379/0
+      # Monitoring
+      - PROMETHEUS_PORT=9090
+      - ENABLE_METRICS=true
+    
+    volumes:
+      # Persistent data storage
+      - workshop_data:/app/data
+      - workshop_logs:/app/logs
+      - workshop_backups:/app/backups
+      # Hardware access (for cameras)
+      - /dev/bus/usb:/dev/bus/usb:rw
+      # Time synchronization
+      - /etc/localtime:/etc/localtime:ro
+    
+    ports:
+      # Application API (if needed in future)
+      - "8000:8000"
+      # Metrics endpoint for Prometheus
+      - "9090:9090"
+    
     depends_on:
-      - ingest
-    build:
-      context: .
-      dockerfile: pipelines/run_01_quality/Dockerfile
-
-  enhance:
-    image: workshop-enhance:latest
-    container_name: workshop-enhance
-    restart: unless-stopped
+      redis:
+        condition: service_healthy
+    
     networks:
-      - workshop-net
-    volumes:
-      - ./produce/output/processed:/data/processed
-      - ./common/configs:/app/common/configs:ro
-      - ./partdata/model/weights:/data/model/weights:ro
-      - ./common/configs/model_config.yaml:/app/configs/model_config.yaml:ro
-    environment:
-      - PYTHONPATH=/app/common/scripts
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - YOLO_MODEL_PATH=/data/models/yolov8n-seg.pt      # 默认使用分割模型
-      - TZ=Asia/Shanghai
-    command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/processed/${SCENE_ID}/enhanced"]
-    depends_on:
-      - quality
-    build:
-      context: .
-      dockerfile: pipelines/run_02_enhance/Dockerfile
+      - workshop-network
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "from common.core.base_pipeline import BasePipeline; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '2.0'
+          memory: 4G
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    
+    labels:
+      - "com.spharx.service=workshop"
+      - "com.spharx.version=2.0.0"
 
-  calibrate:
-    image: workshop-calibrate:latest
-    container_name: workshop-calibrate
+  # ============================================
+  # Redis Cache & Message Broker
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: workshop-redis
     restart: unless-stopped
-    networks:
-      - workshop-net
+    
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    
     volumes:
-      - ./produce/input/calibration:/data/calibration_images:ro
-      - ./produce/output/processed:/data/processed
-      - ./common/configs:/app/common/configs:ro
-    environment:
-      - PYTHONPATH=/app/common/scripts
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - TZ=Asia/Shanghai
-    command: ["--input", "/data/calibration_images", "--output", "/data/processed/${SCENE_ID}/calib"]
-    depends_on:
-      - enhance
-    build:
-      context: .
-      dockerfile: pipelines/run_03_calibrate/Dockerfile
+      - redis_data:/data
+    
+    ports:
+      - "6379:6379"
+    
+    networks:
+      - workshop-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    deploy:
+      resources:
+        limits:
+          memory: 768M
 
-  pack:
-    image: workshop-pack:latest
-    container_name: workshop-pack
+  # ============================================
+  # Prometheus Monitoring
+  # ============================================
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: workshop-prometheus
     restart: unless-stopped
-    networks:
-      - workshop-net
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    
     volumes:
-      - ./produce/output/processed:/data/processed
-      - ./produce/output/datasets:/data/datasets
-      - ./common/configs:/app/common/configs:ro
-    environment:
-      - PYTHONPATH=/app/common/scripts
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - TZ=Asia/Shanghai
-    command: ["--input", "/data/processed/${SCENE_ID}", "--output", "/data/datasets/${SCENE_ID}"]
+      - ./config/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    
+    ports:
+      - "9091:9090"
+    
+    networks:
+      - workshop-network
+    
     depends_on:
-      - calibrate
-    build:
-      context: .
-      dockerfile: pipelines/run_04_pack/Dockerfile
+      - workshop-app
+    
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
-  delivery:
-    image: workshop-delivery:latest
-    container_name: workshop-delivery
+  # ============================================
+  # Grafana Dashboard
+  # ============================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: workshop-grafana
     restart: unless-stopped
-    networks:
-      - workshop-net
-    volumes:
-      - ./produce/output/datasets:/data/datasets
-      - ./common/configs:/app/common/configs:ro
+    
     environment:
-      - PYTHONPATH=/app/common/scripts
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - TZ=Asia/Shanghai
-    command: ["--input", "/data/datasets/${SCENE_ID}"]
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    
+    ports:
+      - "3000:3000"
+    
+    networks:
+      - workshop-network
+    
     depends_on:
-      - pack
-    profiles:
-      - delivery
-    build:
-      context: .
-      dockerfile: pipelines/run_05_delivery/Dockerfile
+      - prometheus
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ============================================
+  # Log Aggregation (Loki + Promtail)
+  # Optional: Lightweight alternative to ELK stack
+  # ============================================
+  loki:
+    image: grafana/loki:2.8.0
+    container_name: workshop-loki
+    restart: unless-stopped
+    
+    command: -config.file=/etc/loki/local-config.yaml
+    
+    volumes:
+      - ./config/loki:/etc/loki
+      - loki_data:/loki
+    
+    ports:
+      - "3100:3100"
+    
+    networks:
+      - workshop-network
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+  
+  promtail:
+    image: grafana/promtail:2.8.0
+    container_name: workshop-promtail
+    restart: unless-stopped
+    
+    volumes:
+      - /var/log:/var/log:ro
+      - ./config/promtail:/etc/promtail
+      - workshop_logs:/app/logs:ro
+    
+    command: -config.file=/etc/promtail/config.yml
+    
+    networks:
+      - workshop-network
+    
+    depends_on:
+      - loki
+
+# ============================================
+# Shared Volumes
+# ============================================
+volumes:
+  workshop_data:
+    driver: local
+    name: workshop_data
+  
+  workshop_logs:
+    driver: local
+    name: workshop_logs
+  
+  workshop_backups:
+    driver: local
+    name: workshop_backups
+  
+  redis_data:
+    driver: local
+    name: workshop_redis_data
+  
+  prometheus_data:
+    driver: local
+    name: workshop_prometheus_data
+  
+  grafana_data:
+    driver: local
+    name: workshop_grafana_data
+  
+  loki_data:
+    driver: local
+    name: workshop_loki_data
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  workshop-network:
+    driver: bridge
+    name: workshop_network
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
