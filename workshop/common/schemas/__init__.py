@@ -1,2 +1,0 @@
-# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# 数据模型模块初始化文件
