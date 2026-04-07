@@ -1,0 +1,5 @@
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# 依赖文件
+pyrealsense2>=2.56.4
+pandas>=2.2.0
+Pillow>=10.0.0

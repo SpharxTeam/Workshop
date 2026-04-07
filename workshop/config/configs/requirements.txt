@@ -1,0 +1,9 @@
+# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
+# 全局 Python 依赖（合并自各模块）
+
+pyrealsense2>=2.56.4
+pandas>=2.2.0
+ultralytics>=8.3.0
+opencv-python>=4.6.0
+numpy>=1.26.0
+six>=1.16.0
