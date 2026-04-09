@@ -4,20 +4,20 @@ Workshop V3.0 服务层
 提供 API 网关、监控服务、数据导出等功能。
 """
 
-from services.gateway import (
+from workshop.services.gateway import (
     Gateway,
     Route,
     RequestContext,
     Response,
     Middleware,
 )
-from services.monitor import (
+from workshop.services.monitor import (
     Monitor,
     MonitorTarget,
     MonitorStatus,
     Alert,
 )
-from services.exporter import (
+from workshop.services.exporter import (
     Exporter,
     ExportConfig,
     ExportFormat,

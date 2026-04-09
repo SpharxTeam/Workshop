@@ -4,6 +4,8 @@
 # ========================
 # Python cache
 # ========================
+
+.bendiwenjian/
 __pycache__/
 *.py[cod]
 *.so

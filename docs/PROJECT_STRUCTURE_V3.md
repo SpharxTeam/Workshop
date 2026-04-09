@@ -361,8 +361,8 @@ from commons.schemas import DatasetSchema, SceneSchema
 # 编排层
 from workshop.orchestration import Scheduler, TaskQueue, WorkflowEngine
 
-# 服务层
-from services import Gateway, Monitor, Exporter
+# 服务层 (在 workshop 包内)
+from workshop.services import Gateway, Monitor, Exporter
 ```
 
 ### V2.0 兼容导入
