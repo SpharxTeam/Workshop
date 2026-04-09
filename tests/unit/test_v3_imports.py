@@ -304,7 +304,7 @@ class TestServicesImport:
     """服务层导入测试"""
 
     def test_import_gateway(self):
-        from services.gateway import (
+        from workshop.services.gateway import (
             Gateway,
             Route,
             RequestContext,
@@ -316,7 +316,7 @@ class TestServicesImport:
         assert Response is not None
 
     def test_import_monitor(self):
-        from services.monitor import (
+        from workshop.services.monitor import (
             Monitor,
             MonitorTarget,
             MonitorStatus,
@@ -327,7 +327,7 @@ class TestServicesImport:
         assert MonitorStatus is not None
 
     def test_import_exporter(self):
-        from services.exporter import (
+        from workshop.services.exporter import (
             Exporter,
             ExportConfig,
             ExportFormat,
@@ -338,7 +338,7 @@ class TestServicesImport:
         assert ExportFormat is not None
 
     def test_import_services_init(self):
-        from services import (
+        from workshop.services import (
             Gateway,
             Monitor,
             Exporter,

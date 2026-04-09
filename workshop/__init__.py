@@ -1,36 +1,30 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
 """
-Workshop V2.0 - 企业级数据处理管道框架
+Workshop V3.0 - 企业级数据处理管道框架
 ======================================
 
-基于 AgentOS 微内核架构模式构建的高性能数据处理系统。
+基于 AgentOS 微内核架构和 Deepness 模式构建的高性能数据处理系统。
 
-架构原则:
-    - K-1 Kernel Minimalism: 核心基础设施层最小化
-    - K-2 Interface Contract: 通过 BasePipeline ABC 强制接口契约
-    - K-3 Service Isolation: 每个 Pipeline 模块独立容器化
-    - K-4 Pluggable Strategy: 支持运行时策略切换
+架构层次:
+    - core: 核心层 (abstractions, services, security, observability)
+    - orchestration: 编排层 (scheduler, task_queue, workflow_engine)
+    - services: 服务层 (gateway, monitor, exporter)
 
 主要模块:
-    - core: 核心基础设施 (BasePipeline, ConfigManager, Exceptions等)
-    - pipelines: 数据处理管道模块 (Ingest, Quality, Enhance等)
-    - hardware: 硬件抽象层 (相机/传感器管理)
-    - tests: 测试套件 (单元测试/集成测试/负载测试)
-    - scripts: 运维工具集 (部署/监控/备份)
-    - config: 配置文件 (YAML/Prometheus/Grafana)
-    - docs: 技术文档
+    - workshop.core.abstractions: 核心抽象基类
+    - workshop.core.services: 核心服务 (配置、日志、指标)
+    - workshop.core.security: 安全服务 (验证、审计)
+    - workshop.core.observability: 可观测性 (追踪、性能、健康)
+    - workshop.orchestration: 编排层
+    - workshop.services: API 网关、监控、导出
 
 使用示例:
-    >>> from workshop.core import BasePipeline, ConfigManager
-    >>> from workshop.pipelines.run_00_ingest.runner_v2 import IngestPipeline
-    
-    # 创建并运行 Pipeline
-    with IngestPipeline() as pipeline:
-        result = pipeline.run(input_data)
-        print(f"处理完成：{result.success}")
+    >>> from workshop.core.abstractions import BasePipeline
+    >>> from workshop.core.services import ConfigService
+    >>> from workshop.services import Gateway
 
 版本信息:
-    - 当前版本：2.0.0
+    - 当前版本：3.0.0
     - Python 要求：>=3.8
     - 许可证：GPL-3.0
 
@@ -38,52 +32,55 @@ Workshop V2.0 - 企业级数据处理管道框架
 网站：https://github.com/spharx-cn/workshop
 """
 
-__version__ = '2.0.0'
+__version__ = '3.0.0'
 __author__ = 'SPHARX DevTeam'
 __license__ = 'GPL-3.0'
 
-# 核心模块导入
-from workshop.core.base_pipeline import BasePipeline, PipelineResult, PipelineStatus
-from workshop.core.config_manager import ConfigManager
-from workshop.core.exceptions import (
+# V3.0 核心模块导入
+from workshop.core.abstractions import (
+    BasePipeline,
+    PipelineResult,
+    PipelineStatus,
+    PipelineContext,
+    IStorageBackend,
+    LocalStorageBackend,
+    IHardwareDevice,
+    ErrorCode,
     WorkshopError,
     ConfigurationError,
     PipelineError,
     ValidationError,
     HardwareError,
     DataIOError,
-    error_code_manager
 )
-from workshop.core.logging_setup import setup_logging, get_logger
-from workshop.core.input_validator import InputValidator
-from workshop.core.metrics import WorkshopMetrics, get_metrics, measure_performance
-from workshop.core.io_abstraction import (
-    IStorageBackend,
-    LocalStorageBackend,
-    IOManager,
-    FileMetadata,
-    IOResult,
-    get_io_manager,
-    init_io_manager
+
+from workshop.core.services import (
+    ConfigService,
+    LoggingService,
+    MetricsService,
 )
-from workshop.core.performance import (
-    PerformanceMetric,
-    BenchmarkResult,
-    PerformanceTimer,
-    measure_performance,
-    BenchmarkSuite,
-    MemoryProfiler,
-    quick_benchmark,
-    compare_functions
+
+from workshop.core.security import (
+    ValidationService,
+    SecurityService,
 )
-from workshop.core.security_audit import (
-    SecuritySeverity,
-    SecurityFinding,
-    SecurityAuditReport,
-    CodeSecurityScanner,
-    DependencyAuditor,
-    ConfigurationAuditor,
-    run_full_security_audit
+
+from workshop.core.observability import (
+    TracingService,
+    PerformanceMonitor,
+    HealthService,
+)
+
+from workshop.orchestration import (
+    Scheduler,
+    TaskQueue,
+    WorkflowEngine,
+)
+
+from workshop.services import (
+    Gateway,
+    Monitor,
+    Exporter,
 )
 
 # 导出所有公共 API
@@ -93,61 +90,47 @@ __all__ = [
     '__author__',
     '__license__',
     
-    # BasePipeline
+    # 核心抽象
     'BasePipeline',
     'PipelineResult',
     'PipelineStatus',
+    'PipelineContext',
+    'IStorageBackend',
+    'LocalStorageBackend',
+    'IHardwareDevice',
     
-    # ConfigManager
-    'ConfigManager',
-    
-    # Exceptions
+    # 异常类
+    'ErrorCode',
     'WorkshopError',
     'ConfigurationError',
     'PipelineError',
     'ValidationError',
     'HardwareError',
     'DataIOError',
-    'error_code_manager',
     
-    # Logging
-    'setup_logging',
-    'get_logger',
+    # 核心服务
+    'ConfigService',
+    'LoggingService',
+    'MetricsService',
     
-    # Validation
-    'InputValidator',
+    # 安全服务
+    'ValidationService',
+    'SecurityService',
     
-    # Metrics & Monitoring
-    'WorkshopMetrics',
-    'get_metrics',
-    'measure_performance',
+    # 可观测性
+    'TracingService',
+    'PerformanceMonitor',
+    'HealthService',
     
-    # I/O
-    'IStorageBackend',
-    'LocalStorageBackend',
-    'IOManager',
-    'FileMetadata',
-    'IOResult',
-    'get_io_manager',
-    'init_io_manager',
+    # 编排层
+    'Scheduler',
+    'TaskQueue',
+    'WorkflowEngine',
     
-    # Performance
-    'PerformanceMetric',
-    'BenchmarkResult',
-    'PerformanceTimer',
-    'BenchmarkSuite',
-    'MemoryProfiler',
-    'quick_benchmark',
-    'compare_functions',
-    
-    # Security
-    'SecuritySeverity',
-    'SecurityFinding',
-    'SecurityAuditReport',
-    'CodeSecurityScanner',
-    'DependencyAuditor',
-    'ConfigurationAuditor',
-    'run_full_security_audit',
+    # 服务层
+    'Gateway',
+    'Monitor',
+    'Exporter',
 ]
 
 
@@ -164,10 +147,8 @@ def get_info() -> dict:
         'author': __author__,
         'license': __license__,
         'python_requires': '>=3.8',
-        'description': '企业级数据处理管道框架',
+        'description': '企业级数据处理管道框架 V3.0',
         'url': 'https://github.com/spharx-cn/workshop',
+        'architecture': 'Five-Layer Architecture (Core/Orchestration/Services/Commons)',
+        'reference_projects': ['AgentOS', 'Deepness'],
     }
-
-
-# 初始化日志系统
-setup_logging()
