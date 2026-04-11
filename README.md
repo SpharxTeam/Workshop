@@ -10,7 +10,7 @@
 [![star](https://gitee.com/spharx/workshop/badge/star.svg?theme=dark)](https://gitee.com/spharx/workshop)
 [![GitHub](https://img.shields.io/github/stars/SpharxTeam/Workshop?style=social)](https://github.com/SpharxTeam/Workshop)
 
-[![Version](https://img.shields.io/badge/version-2.0.0-5a6b7e)](https://atomgit.com/spharx/workshop)
+[![Version](https://img.shields.io/badge/version-3.0.0-5a6b7e)](https://atomgit.com/spharx/workshop)
 [![License](https://img.shields.io/badge/license-GPL--3.0-4a90d9)](LICENSE)
 [![Build](https://img.shields.io/badge/build-passing-2ea44f)](https://atomgit.com/spharx/workshop)
 
@@ -23,19 +23,18 @@
 
 ## 🌟 项目简介
 
-**Workshop** 是 SpharxWorks 平台的核心数据采集和预处理子系统，基于 **AgentOS 微内核架构** 构建，采用模块化、容器化的设计理念。从原始传感器数据到标准化高质量数据集，实现完整处理链路。
+**Workshop V3.0** 是 SpharxWorks 平台的核心数据采集和预处理子系统，基于 **AgentOS 微内核架构** 和 **Deepness 模块化设计** 构建，采用五层架构设计。从原始传感器数据到标准化高质量数据集，实现完整处理链路。
 
 作为物理世界数据工厂，Workshop 为后续的深度加工（Deepness）提供高质量的数据基础。
 
 ## 💡 核心特性
 
-- **模块化架构**：基于 BasePipeline ABC 的标准化管道框架，代码复用率提升 **375%**
-- **生产级质量**：100+ 错误码体系，输入验证覆盖率 **99%**
-- **性能卓越**：V1 vs V2 基准测试显示平均性能提升 **+50.6%**
-- **安全内生**：SAST 静态扫描 + InputValidator 输入净化
-- **可观测性**：Prometheus + Grafana 全方位监控，12 条生产级告警规则
-- **DevOps 完善**：GitHub Actions CI/CD 8 阶段流水线，Docker 多阶段构建
-- **运维自动化**：日志清理、备份轮转、健康检查一键完成
+- **五层架构**：Core → Commons → Orchestration → Services → Pipelines
+- **模块化设计**：基于 BasePipeline ABC 的标准化管道框架
+- **生产级质量**：100+ 错误码体系，输入验证覆盖率 99%
+- **安全内生**：SQL/XSS 检测、路径遍历防护、审计日志
+- **可观测性**：分布式追踪、性能监控、健康检查
+- **DevOps 完善**：GitHub Actions CI/CD，Docker 多阶段构建
 
 ## 🎯 基本理念
 
@@ -53,18 +52,25 @@
 
 ## 🏗️ 系统架构
 
-**架构设计** · 参照 AgentOS 微内核架构模式
+**V3.0 五层架构** · 参考 AgentOS 和 Deepness 设计模式
 
 ```
-应用层 (workshop/pipelines/)
-    ↕
-核心层 (workshop/common/core/) — BasePipeline · ConfigManager · Exceptions
-    ↕
-抽象层 (workshop/common/) — IO · Metrics · Security · Performance
-    ↕
-硬件层 (workshop/hardware/) — DeviceManager · RealSense · Calibration
-    ↕
-支撑层 (workshop/scripts/) — LoadTester · OpsToolkit · Deploy
+┌─────────────────────────────────────────────────────────┐
+│                    Pipelines 层                          │
+│    run_00_ingest → run_01_quality → ... → delivery      │
+├─────────────────────────────────────────────────────────┤
+│                    Services 层                           │
+│         Gateway · Monitor · Exporter                    │
+├─────────────────────────────────────────────────────────┤
+│                  Orchestration 层                        │
+│       Scheduler · TaskQueue · WorkflowEngine            │
+├─────────────────────────────────────────────────────────┤
+│                     Commons 层                           │
+│          Utils · Schemas · Decorators                   │
+├─────────────────────────────────────────────────────────┤
+│                      Core 层                             │
+│  Abstractions · Services · Security · Observability     │
+└─────────────────────────────────────────────────────────┘
 ```
 
 **📐 设计原则** · 基于 AgentOS K-1 至 K-4 架构原则：
@@ -100,69 +106,70 @@ graph LR
 
 ## 📦 项目结构
 
-### V2.0 核心架构 (workshop/)
+### V3.0 核心架构
 
 ```
-workshop/                          # 核心代码目录 (v2.0)
-├── __init__.py                   # 包入口，导出公共 API
-├── common/                       # 通用模块
-│   ├── core/                    # 核心基础设施
-│   │   ├── base_pipeline.py     # Pipeline ABC (K-2 接口契约)
-│   │   ├── config_manager.py    # 三级配置合并
-│   │   ├── exceptions.py        # 100+ 错误码体系
-│   │   ├── logging_setup.py      # 日志系统
-│   │   ├── input_validator.py    # 输入验证 (12 种模式)
-│   │   ├── io_abstraction.py     # IO 抽象层
-│   │   ├── metrics.py            # Prometheus 监控
-│   │   ├── performance.py        # 性能基准测试
-│   │   └── security_audit.py     # SAST 安全审计
-│   ├── configs/                 # YAML 配置文件
-│   ├── schemas/                 # 数据模式定义
-│   └── dashboard/               # Web 监控仪表板
-├── pipelines/                    # 6 个数据处理管道
-│   ├── run_00_ingest/          # 数据导入
-│   ├── run_01_quality/         # 质量检测
-│   ├── run_02_enhance/         # 数据增强
-│   ├── run_03_calibrate/       # 相机校准
-│   ├── run_04_pack/            # 数据打包
-│   └── run_05_delivery/        # 数据交付
+Workshop/
+├── workshop/                      # ★ 核心代码包 V3.0
+│   ├── __init__.py               # 包入口，导出公共 API
+│   ├── core/                     # 核心层
+│   │   ├── abstractions/         # 抽象基类 (BasePipeline, IStorageBackend)
+│   │   ├── services/             # 核心服务 (Config, Logging, Metrics)
+│   │   ├── security/             # 安全服务 (Validation, Security)
+│   │   └── observability/        # 可观测性 (Tracing, Performance, Health)
+│   ├── orchestration/            # 编排层
+│   │   ├── scheduler.py          # 任务调度器
+│   │   ├── task_queue.py         # 任务队列
+│   │   └── workflow_engine.py    # 工作流引擎
+│   └── services/                 # 服务层
+│       ├── gateway.py            # API 网关
+│       ├── monitor.py            # 监控服务
+│       └── exporter.py           # 数据导出
+│
+├── commons/                      # 通用层
+│   ├── utils/                    # 工具函数
+│   │   ├── logging_utils.py      # 日志工具
+│   │   ├── decorators.py         # 装饰器 (retry, throttle, debounce)
+│   │   ├── data_utils.py         # 数据处理 (deep_merge, safe_get)
+│   │   └── functional.py         # 函数式工具 (Singleton, Timer, RateLimiter)
+│   └── schemas/                  # 数据模式
+│       ├── dataset.py            # 数据集模式
+│       ├── scene.py              # 场景模式
+│       └── sensor_stream.py      # 传感器流模式
+│
+├── common/                       # 向后兼容层 (V2.0)
+│   ├── configs/                  # 配置文件
+│   ├── dashboard/                # Web 监控仪表板
+│   └── scripts/                  # 兼容脚本
+│
+├── pipelines/                    # 数据处理管道
+│   ├── run_00_ingest/           # 数据导入
+│   ├── run_01_quality/          # 质量检测
+│   ├── run_02_enhance/          # 数据增强
+│   ├── run_03_calibrate/        # 相机校准
+│   ├── run_04_pack/             # 数据打包
+│   ├── run_05_delivery/         # 数据交付
+│   └── streaming/               # 流式处理
+│
 ├── hardware/                     # 硬件抽象层
-│   ├── hardware_abstraction.py  # DeviceManager
-│   └── calibration/            # 校准工具
-├── tests/                       # 测试套件 (67+ 用例)
-│   ├── unit/                  # 单元测试
-│   ├── integration/            # 集成测试
-│   └── framework/             # 测试框架
-├── scripts/                     # 运维工具
-│   ├── load_tester.py        # 负载测试 (5 种类型)
-│   ├── ops_toolkit.py        # 运维自动化
-│   ├── deploy_v2.py          # 部署工具
-│   └── code_quality_checker.py # 代码质量检查
-└── docs/                       # 技术文档
-```
-
-### 完整目录树
-
-```
-workshop/
-├── workshop/                    # 核心代码
-│   ├── common/core/           # 10 个核心模块
-│   ├── pipelines/             # 6 个处理管道
-│   ├── hardware/              # 硬件抽象
-│   ├── tests/                 # 测试套件
-│   ├── scripts/               # 运维工具 (9 个)
-│   ├── config/               # Prometheus 配置
-│   └── docs/                  # 文档 (11 份)
-├── common/                     # 保留向后兼容
-├── pipelines/                  # 保留向后兼容
-├── hardware/                   # 保留向后兼容
-├── tests/                      # 保留向后兼容
-├── scripts/                    # 保留向后兼容
-├── config/                     # 根配置
-├── docs/                      # 根文档
-├── docker-compose.yml          # 7 服务编排
-├── Dockerfile                  # 多阶段构建
-└── .github/workflows/         # CI/CD 流水线
+│   ├── hardware_abstraction.py   # DeviceManager
+│   ├── calibration/             # 校准工具
+│   └── camera/                  # 相机驱动
+│
+├── tests/                        # 测试套件
+│   ├── unit/                    # 单元测试
+│   ├── integration/             # 集成测试
+│   └── framework/               # 测试框架
+│
+├── scripts/                      # 运维工具
+│   ├── load_tester.py           # 负载测试
+│   ├── ops_toolkit.py           # 运维自动化
+│   └── quality_check.py         # 代码质量检查
+│
+└── docs/                         # 技术文档
+    ├── API_REFERENCE.md         # API 参考
+    ├── DEVELOPER_GUIDE.md       # 开发者指南
+    └── PROJECT_STRUCTURE_V3.md  # 项目结构
 ```
 
 ## 🚀 快速上手
@@ -194,32 +201,34 @@ docker-compose ps
 docker-compose logs -f workshop-app
 ```
 
-### 🐳 Docker 服务栈
-
-| 服务 | 端口 | 功能 |
-|------|------|------|
-| **workshop-app** | 8000, 9090 | 主应用 + Metrics |
-| **redis** | 6379 | 缓存/消息队列 |
-| **prometheus** | 9091 | 指标采集 |
-| **grafana** | 3000 | 可视化面板 |
-| **loki** | 3100 | 日志聚合 |
-
-### 📚 Python API 使用
+### 📚 Python API 使用 (V3.0)
 
 ```python
-# 方式 1: 推荐 - 使用 workshop 包导入
-from workshop import BasePipeline, ConfigManager
-from workshop.pipelines.run_00_ingest.runner_v2 import IngestPipeline
-from workshop.hardware import DeviceManager
-from workshop.core.metrics import get_metrics
+# V3.0 推荐导入方式
+from workshop import BasePipeline, ConfigService, LoggingService
+from workshop.core.abstractions import PipelineResult, PipelineStatus
+from workshop.core.services import ConfigService, LoggingService, MetricsService
+from workshop.core.security import ValidationService, SecurityService
+from workshop.core.observability import TracingService, PerformanceMonitor
+from workshop.orchestration import Scheduler, TaskQueue, WorkflowEngine
+from workshop.services import Gateway, Monitor, Exporter
+from commons.utils import get_logger, deep_merge, retry
+from commons.schemas import DatasetSchema, SceneSchema
 
-# 方式 2: 兼容旧路径
-from common.core.base_pipeline import BasePipeline
+# 使用 BasePipeline
+class MyPipeline(BasePipeline):
+    def _initialize(self):
+        self.config = ConfigService()
+        self.logger = LoggingService()
 
-# 运行 Pipeline
-with IngestPipeline() as pipeline:
-    result = pipeline.run(input_data={'path': 'data/sample.bag'})
-    print(f"处理完成：{result.success}")
+    def _execute(self, input_data) -> PipelineResult:
+        return PipelineResult(success=True, data={})
+
+    def _cleanup(self):
+        pass
+
+# V2.0 兼容导入 (显示 DeprecationWarning)
+from common.core import BasePipeline, ConfigService
 ```
 
 ## 🎯 核心模块详解
@@ -227,15 +236,15 @@ with IngestPipeline() as pipeline:
 ### BasePipeline - 管道抽象基类
 
 ```python
-from workshop import BasePipeline, PipelineResult, PipelineStatus
+from workshop.core.abstractions import BasePipeline, PipelineResult
 
 class MyPipeline(BasePipeline):
     """标准化 Pipeline 实现"""
 
     def _initialize(self):
         """初始化配置和资源"""
-        self.config = ConfigManager(module_name='my_pipeline')
-        self.logger = get_logger('my_pipeline')
+        self.config = ConfigService()
+        self.logger = LoggingService()
 
     def _execute(self, input_data) -> PipelineResult:
         """执行业务逻辑"""
@@ -246,31 +255,27 @@ class MyPipeline(BasePipeline):
         pass
 ```
 
-### ConfigManager - 配置管理
+### ConfigService - 配置管理
 
 ```python
-from workshop.core import ConfigManager
+from workshop.core.services import ConfigService
 
-config = ConfigManager(
-    module_name='ingest',
-    config_dir='config/'
-)
+config = ConfigService()
 
-# 三级配置合并
+# 多级配置合并
 value = config.get('blur_threshold', default=100)
 ```
 
-### WorkshopMetrics - 监控指标
+### TracingService - 分布式追踪
 
 ```python
-from workshop.core.metrics import get_metrics
+from workshop.core.observability import TracingService
 
-metrics = get_metrics()
-metrics.init_metrics_server(port=9090)
+tracing = TracingService()
 
-with metrics.pipeline_timer('quality_check') as timer:
-    result = pipeline.run(data)
-    timer.set_metadata({'score': 0.95})
+with tracing.span("process_data"):
+    # 业务逻辑
+    pass
 ```
 
 ## 🧪 测试与质量
@@ -279,99 +284,27 @@ with metrics.pipeline_timer('quality_check') as timer:
 
 ```bash
 # 单元测试
-python -m pytest workshop/tests/unit/ -v
+python -m pytest tests/unit/ -v
 
 # 集成测试
-python -m pytest workshop/tests/integration/ -v
+python -m pytest tests/integration/ -v
 
 # 负载测试
-python workshop/scripts/load_tester.py --test-type load -c 20
+python scripts/load_tester.py --test-type load -c 20
 
 # 代码质量检查
-python workshop/scripts/code_quality_checker.py workshop/common/core/
+python scripts/quality_check.py
 ```
-
-### 性能基准
-
-| 测试项 | V1 (重构前) | V2 (重构后) | 提升 |
-|--------|------------|------------|------|
-| 配置管理 | 45.2 ms | 24.8 ms | **+45.1%** |
-| 异常处理 | 12.3 ms | 7.6 ms | **+38.2%** |
-| 输入验证 | 8.9 ms | 4.3 ms | **+51.7%** |
-| 管道初始化 | 156.7 ms | 51.2 ms | **+67.3%** |
-| **综合平均** | **55.8 ms** | **22.0 ms** | **+50.6%** |
-
-## 🛠️ 运维工具
-
-### ops_toolkit.py - 一键运维
-
-```bash
-# 日常维护 (推荐每日运行)
-python workshop/scripts/ops_toolkit.py --daily-maintenance
-
-# 日志清理
-python workshop/scripts/ops_toolkit.py --cleanup-logs --days 7 --execute
-
-# 创建备份
-python workshop/scripts/ops_toolkit.py --backup --type full
-
-# 系统健康检查
-python workshop/scripts/ops_toolkit.py --health-check
-```
-
-### load_tester.py - 负载测试
-
-```bash
-# 负载测试
-python workshop/scripts/load_tester.py --test-type load -c 10 -r 50
-
-# 压力测试 (找到瓶颈)
-python workshop/scripts/load_tester.py --test-type stress --max-concurrent 100
-
-# 内存泄漏检测
-python workshop/scripts/load_tester.py --test-type memory-leak -i 1000
-
-# 完整测试套件
-python workshop/scripts/load_tester.py --full-suite
-```
-
-## 🔒 安全特性
-
-- **输入验证**：99% 覆盖率，防止路径遍历、SQL 注入等
-- **错误隐藏**：生产环境自动隐藏敏感信息
-- **日志净化**：自动过滤敏感数据
-- **SAST 扫描**：6 类安全规则自动检测
-
-## 📊 监控告警
-
-### Prometheus 指标
-
-| 指标类型 | 指标名 | 说明 |
-|---------|--------|------|
-| Counter | `workshop_pipeline_executions_total` | Pipeline 执行计数 |
-| Histogram | `workshop_pipeline_duration_seconds` | 执行耗时分布 |
-| Gauge | `workshop_active_pipelines` | 当前活跃数 |
-| Counter | `workshop_errors_total` | 错误计数 |
-
-### 告警规则
-
-- 🔴 **WorkshopAppDown** - 应用宕机
-- 🔴 **DiskSpaceLow** - 磁盘空间不足
-- 🔴 **RedisConnectionFailure** - Redis 不可用
-- 🟡 **WorkshopHighErrorRate** - 错误率 >5%
-- 🟡 **PipelineSlowExecution** - P95 延迟 >120s
-- 🟡 **DataIngestionStalled** - 数据摄入停滞
 
 ## 📚 文档资源
 
 | 文档 | 说明 |
 |------|------|
-| [📘 项目结构](workshop/docs/PROJECT_STRUCTURE.md) | V2.0 目录布局详解 |
-| [📊 迁移报告](workshop/docs/MIGRATION_REPORT.md) | 项目重组完成报告 |
-| [🏗️ 架构决策](workshop/docs/ARCHITECTURE_DECISION_RECORDS.md) | 9 条 ADR 记录 |
-| [🚀 快速开始](workshop/docs/V2_QUICKSTART.md) | 开发者入门指南 |
-| [📦 交付手册](workshop/docs/DELIVERY_CHECKLIST_AND_MANUAL.md) | 完整操作手册 |
-| [📈 Phase 8 报告](workshop/docs/PHASE8_COMPLETION_REPORT.md) | 生产环境增强 |
+| [📘 项目结构 V3](docs/PROJECT_STRUCTURE_V3.md) | V3.0 目录布局详解 |
+| [📊 重构计划](docs/REFACTORING_PLAN_V3.md) | V3.0 重构计划 |
+| [🏗️ 架构决策](docs/ARCHITECTURE_DECISION_RECORDS.md) | ADR 记录 |
+| [🚀 开发者指南](docs/DEVELOPER_GUIDE.md) | 开发者入门指南 |
+| [📦 API 参考](docs/API_REFERENCE.md) | API 文档 |
 
 ## 🤝 贡献指南
 
@@ -399,47 +332,6 @@ git push origin feature/AmazingFeature
 - 使用 Black 格式化代码
 - 类型注解覆盖率 >95%
 - 单元测试覆盖新功能
-
-## ❔ 常见问题
-
-<details>
-<summary><b>Q1: Workshop V2.0 相比 V1 有哪些改进？</b></summary>
-
-| 维度 | V1 | V2 |
-|------|-----|-----|
-| 架构 | 单体脚本 | 微内核 + BasePipeline |
-| 性能 | 基准 | +50.6% 提升 |
-| 错误处理 | 散乱 | 100+ 错误码体系 |
-| 输入验证 | ~10% | 99% 覆盖 |
-| 监控 | 无 | Prometheus + Grafana |
-| 运维 | 手工 | 自动化工具链 |
-
-</details>
-
-<details>
-<summary><b>Q2: 如何进行性能测试？</b></summary>
-
-```bash
-# 快速性能测试
-python workshop/scripts/performance_benchmark_v1_vs_v2.py
-
-# 负载测试
-python workshop/scripts/load_tester.py --test-type load -c 20 -r 100
-
-# 内存泄漏检测
-python workshop/scripts/load_tester.py --test-type memory-leak -i 2000
-```
-
-</details>
-
-<details>
-<summary><b>Q3: 支持哪些硬件设备？</b></summary>
-
-- **Intel RealSense** 相机系列 (D400 / D500 / L500)
-- 支持设备热插拔和自动重连
-- 可扩展的 IHardwareDevice ABC 接口
-
-</details>
 
 ## 🚀 与 Deepness 集成
 
