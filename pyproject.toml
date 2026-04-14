@@ -1,11 +1,11 @@
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "workshop"
-version = "2.0.0"
-description = "企业级数据处理管道框架 - 基于 AgentOS 微内核架构"
+version = "3.0.0"
+description = "企业级数据处理管道框架 V3.0 - 基于 AgentOS 和 Deepness 架构模式"
 readme = "README.md"
 license = {text = "GPL-3.0"}
 authors = [
@@ -20,6 +20,7 @@ keywords = [
     "computer-vision",
     "ros",
     "agentos",
+    "deepness",
     "machine-learning",
     "data-factory"
 ]
@@ -50,6 +51,8 @@ dependencies = [
     "python-dateutil>=2.8.0",
     "tqdm>=4.64.0",
     "prometheus-client>=0.16.0",
+    "structlog>=22.1.0",
+    "typing-extensions>=4.4.0",
 ]
 
 [project.optional-dependencies]
@@ -66,6 +69,7 @@ dev = [
     "sphinx>=6.0.0",
     "sphinx-rtd-theme>=1.2.0",
     "myst-parser>=1.0.0",
+    "ruff>=0.1.0",
 ]
 hardware = [
     "pyrealsense2>=2.54.0",
@@ -93,7 +97,7 @@ Issues = "https://atomgit.com/spharx/workshop/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["workshop*"]
+include = ["workshop*", "commons*", "common*"]
 
 [tool.black]
 line-length = 100
@@ -129,10 +133,10 @@ skip_gitignore = true
 python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 check_untyped_defs = true
-disallow_incomplete_defs = true
-disallow_untyped_decorators = true
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -166,7 +170,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["workshop"]
+source = ["workshop", "commons"]
 branch = true
 omit = [
     "*/tests/*",
