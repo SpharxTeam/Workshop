@@ -6,24 +6,11 @@
 
 中文 | [English](README_EN.md)
 
-[![AtomGit](https://atomgit.com/spharx/workshop/star/badge.svg)](https://atomgit.com/spharx/workshop)
-[![star](https://gitee.com/spharx/workshop/badge/star.svg?theme=dark)](https://gitee.com/spharx/workshop)
-[![GitHub](https://img.shields.io/github/stars/SpharxTeam/Workshop?style=social)](https://github.com/SpharxTeam/Workshop)
-
-[![Version](https://img.shields.io/badge/version-3.0.0-5a6b7e)](https://atomgit.com/spharx/workshop)
-[![License](https://img.shields.io/badge/license-GPL--3.0-4a90d9)](LICENSE)
-[![Build](https://img.shields.io/badge/build-passing-2ea44f)](https://atomgit.com/spharx/workshop)
-
-[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?logo=python&logoColor=white)](https://www.python.org)
-[![Docker](https://img.shields.io/badge/Docker-20.10+-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
-[![Prometheus](https://img.shields.io/badge/Prometheus-2.45-E6522C?logo=prometheus&logoColor=white)](https://prometheus.io)
-[![Grafana](https://img.shields.io/badge/Grafana-10.2-F46800?logo=grafana&logoColor=white)](https://grafana.com)
-
 </div>
 
 ## 🌟 项目简介
 
-**Workshop V3.0** 是 SpharxWorks 平台的核心数据采集和预处理子系统，基于 **AgentOS 微内核架构** 和 **Deepness 模块化设计** 构建，采用五层架构设计。从原始传感器数据到标准化高质量数据集，实现完整处理链路。
+**Workshop V3.0** 是 SpharxWorks 数据智能基础设施工具集（SpharxTools）的核心数据采集和预处理子系统，基于 **AgentOS 微内核架构** 和 **Deepness 模块化设计** 构建，采用五层架构设计。从原始传感器数据到标准化高质量数据集，实现完整处理链路。
 
 作为物理世界数据工厂，Workshop 为后续的深度加工（Deepness）提供高质量的数据基础。
 
@@ -420,15 +407,3 @@ graph LR
 © 2026 SPHARX Ltd. All Rights Reserved.
 
 </div>
-
----
-
-## ⭐️ Star History
-
-<a href="https://www.star-history.com/">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=SpharxTeam/Workshop&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=SpharxTeam/Workshop&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=SpharxTeam/Workshop&type=date&legend=top-left" />
- </picture>
-</a>
