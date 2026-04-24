@@ -275,4 +275,4 @@ info:
 	@echo "╚═══════════════════════════════════════════╝"
 
 version:
-	@python -c "from workshop import get_info; import json; print(json.dumps(get_info(), indent=2, ensure_ascii=False))"
+	@python -c "from core_workshop import get_info; import json; print(json.dumps(get_info(), indent=2, ensure_ascii=False))"

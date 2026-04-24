@@ -372,9 +372,9 @@ python scripts/quality_check.py --report
    ```python
    # V1
    from common.core.base_pipeline import BasePipeline
-   
+
    # V2 (推荐)
-   from workshop import BasePipeline
+   from core_workshop import BasePipeline
    ```
 
 2. **使用新的 CLI 工具**

@@ -36,8 +36,8 @@ pip install -e ".[hardware,ml]"
 ### 基本使用
 
 ```python
-from workshop import BasePipeline, PipelineResult, ConfigManager
-from workshop.common.core.logging_setup import get_logger
+from core_workshop import BasePipeline, PipelineResult, ConfigManager
+from common.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -186,8 +186,8 @@ class PipelineResult:
 #### 使用示例
 
 ```python
-from workshop import BasePipeline, PipelineResult, PipelineStatus
-
+from core_workshop import BasePipeline, PipelineResult, PipelineStatus
+```
 class DataIngestionPipeline(BasePipeline):
     """数据导入管道示例"""
 
@@ -324,7 +324,7 @@ class ConfigManager:
 #### 使用示例
 
 ```python
-from workshop import ConfigManager
+from core_workshop import ConfigManager
 
 # 创建配置管理器
 config = ConfigManager(
@@ -448,7 +448,7 @@ class ErrorSeverity(Enum):
 #### 使用示例
 
 ```python
-from workshop import (
+from core_workshop import (
     WorkshopError,
     ConfigurationError,
     PipelineError,
@@ -558,7 +558,7 @@ class Pattern(Enum):
 #### 使用示例
 
 ```python
-from workshop import InputValidator, Pattern
+from core_workshop import InputValidator, Pattern
 
 validator = InputValidator()
 
@@ -685,7 +685,7 @@ class CompressionFormat(Enum):
 #### 使用示例
 
 ```python
-from workshop import (
+from core_workshop import (
     IOManager,
     LocalStorageBackend,
     FileMetadata,
@@ -1117,9 +1117,9 @@ Workshop 提供 6 个标准数据处理管道：
 ### 使用示例
 
 ```python
-from workshop.pipelines.run_00_ingest.runner_v2 import IngestPipeline
-from workshop.pipelines.run_01_quality.runner_v2 import QualityPipeline
-from workshop.pipelines.run_04_pack.runner_v2 import PackPipeline
+from core_workshop.pipelines.run_00_ingest.runner_v2 import IngestPipeline
+from core_workshop.pipelines.run_01_quality.runner_v2 import QualityPipeline
+from core_workshop.pipelines.run_04_pack.runner_v2 import PackPipeline
 
 # 完整的数据处理流程
 input_data = {'path': '/data/raw/capture.bag'}

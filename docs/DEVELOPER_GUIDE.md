@@ -63,7 +63,7 @@ pip install -e ".[ml]"
 
 ```python
 # 在 Python 中测试导入
-from workshop import BasePipeline, ConfigManager, get_info
+from core_workshop import BasePipeline, ConfigManager, get_info
 
 print(get_info())
 # 输出: {'name': 'Workshop', 'version': '2.0.0', ...}
@@ -366,7 +366,7 @@ touch workshop/pipelines/run_06_augment/model/__init__.py
 from typing import Dict, Any, List, Tuple
 import cv2
 import numpy as np
-from workshop import BasePipeline, PipelineResult
+from core_workshop import BasePipeline, PipelineResult
 
 
 class ImageAugmentor:
@@ -417,7 +417,7 @@ import logging
 import time
 from pathlib import Path
 
-from workshop import (
+from core_workshop import (
     BasePipeline,
     PipelineResult,
     PipelineStatus,
@@ -564,7 +564,7 @@ import pytest
 import numpy as np
 from unittest.mock import Mock, patch
 
-from workshop.pipelines.run_06_augment.runner_v2 import AugmentPipeline
+from core_workshop.pipelines.run_06_augment.runner_v2 import AugmentPipeline
 
 
 class TestAugmentPipeline:

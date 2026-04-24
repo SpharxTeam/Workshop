@@ -10,17 +10,17 @@ Workshop Core - Services
     - metrics_service: 指标服务
 """
 
-from workshop.core.services.config_service import (
+from core_workshop.core.services.config_service import (
     ConfigService,
     ConfigLoader,
     ConfigValidator,
 )
-from workshop.core.services.logging_service import (
+from core_workshop.core.services.logging_service import (
     LoggingService,
     LogFormatter,
     LogHandler,
 )
-from workshop.core.services.metrics_service import (
+from core_workshop.core.services.metrics_service import (
     MetricsService,
     MetricsCollector,
     MetricsRegistry,

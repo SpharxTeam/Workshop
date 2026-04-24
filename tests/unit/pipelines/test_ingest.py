@@ -38,7 +38,7 @@ def mock_rs(monkeypatch):
 
 def test_parse_bag_success(mock_rs, temp_output_dir):
     """测试 parse_bag 正常解析"""
-    from pipelines.ingest.algorithm.bag_parser import parse_bag
+    from core_workshop.pipelines.ingest.algorithm.bag_parser import parse_bag
     
     # 执行
     result = parse_bag("dummy.bag", str(temp_output_dir))
@@ -62,6 +62,6 @@ def test_parse_bag_success(mock_rs, temp_output_dir):
 
 def test_parse_bag_file_not_exist(temp_output_dir):
     """测试 bag 文件不存在的情况"""
-    from pipelines.ingest.algorithm.bag_parser import parse_bag
+    from core_workshop.pipelines.ingest.algorithm.bag_parser import parse_bag
     result = parse_bag("/nonexistent.bag", str(temp_output_dir))
     assert result is False

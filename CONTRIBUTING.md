@@ -296,7 +296,7 @@ pytest tests/unit/ -v --cov=workshop --cov-fail-under=80
 
 ```python
 from typing import Dict, Any, List, Optional
-from workshop import BasePipeline, PipelineResult, ConfigManager
+from core_workshop import BasePipeline, PipelineResult, ConfigManager
 
 
 class ExamplePipeline(BasePipeline):

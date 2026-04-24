@@ -11,10 +11,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 def test_enhance_pipeline_creation():
     """测试 Enhance Pipeline 创建"""
-    from pipelines.run_02_enhance.runner_v2 import EnhancePipeline
-    
+    from core_workshop.pipelines.run_02_enhance.runner_v2 import EnhancePipeline
+
     pipeline = EnhancePipeline()
-    
+
     assert pipeline.MODULE_NAME == "02_enhance"
     assert pipeline.VERSION == "2.0.0"
     assert hasattr(pipeline, '_model_manager')
@@ -24,10 +24,10 @@ def test_enhance_pipeline_creation():
 
 def test_calibrate_pipeline_creation():
     """测试 Calibrate Pipeline 创建"""
-    from pipelines.run_03_calibrate.runner_v2 import CalibratePipeline
-    
+    from core_workshop.pipelines.run_03_calibrate.runner_v2 import CalibratePipeline
+
     pipeline = CalibratePipeline()
-    
+
     assert pipeline.MODULE_NAME == "03_calibrate"
     assert pipeline.VERSION == "2.0.0"
     assert hasattr(pipeline, '_calibrate_camera')
@@ -37,10 +37,10 @@ def test_calibrate_pipeline_creation():
 
 def test_pack_pipeline_creation():
     """测试 Pack Pipeline 创建"""
-    from pipelines.run_04_pack.runner_v2 import PackPipeline
-    
+    from core_workshop.pipelines.run_04_pack.runner_v2 import PackPipeline
+
     pipeline = PackPipeline()
-    
+
     assert pipeline.MODULE_NAME == "04_pack"
     assert pipeline.VERSION == "2.0.0"
     assert len(pipeline.SUPPORTED_FORMATS) > 0
@@ -52,10 +52,10 @@ def test_pack_pipeline_creation():
 
 def test_delivery_pipeline_creation():
     """测试 Delivery Pipeline 创建"""
-    from pipelines.run_05_delivery.runner_v2 import DeliveryPipeline
-    
+    from core_workshop.pipelines.run_05_delivery.runner_v2 import DeliveryPipeline
+
     pipeline = DeliveryPipeline()
-    
+
     assert pipeline.MODULE_NAME == "05_delivery"
     assert pipeline.VERSION == "2.0.0"
     assert len(pipeline.REQUIRED_OSS_CONFIG) == 4
@@ -66,8 +66,8 @@ def test_delivery_pipeline_creation():
 
 def test_streaming_pipeline_creation():
     """测试 Streaming Pipeline 创建"""
-    from pipelines.streaming.frame_pipeline_v2 import StreamingPipeline
-    
+    from core_workshop.pipelines.streaming.frame_pipeline_v2 import StreamingPipeline
+
     with tempfile.TemporaryDirectory() as tmpdir:
         # 创建一些测试图像文件
         for i in range(5):
@@ -90,8 +90,8 @@ def test_streaming_pipeline_creation():
 
 def test_streaming_base_consumer():
     """测试 BaseConsumer 基类"""
-    from pipelines.streaming.frame_pipeline_v2 import BaseConsumer, FrameData
-    
+    from core_workshop.pipelines.streaming.frame_pipeline_v2 import BaseConsumer, FrameData
+
     class TestConsumer(BaseConsumer):
         def __init__(self):
             super().__init__("test")
@@ -102,7 +102,7 @@ def test_streaming_base_consumer():
             return {'processed': frame_data.frame_idx}
     
     consumer = TestConsumer()
-    
+
     assert consumer.name == "test"
     assert consumer.is_running is False
     assert consumer.processed_count == 0
@@ -113,9 +113,9 @@ def test_streaming_base_consumer():
 
 def test_frame_data_structure():
     """测试 FrameData 数据结构"""
-    from pipelines.streaming.frame_pipeline_v2 import FrameData
+    from core_workshop.pipelines.streaming.frame_pipeline_v2 import FrameData
     import numpy as np
-    
+
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     frame_data = FrameData(
         frame=frame,
@@ -123,7 +123,7 @@ def test_frame_data_structure():
         frame_idx=42,
         metadata={'quality': 'good'}
     )
-    
+
     assert frame_data.frame_idx == 42
     assert frame_data.frame_name == "test_001.jpg"
     assert frame_data.metadata['quality'] == 'good'
@@ -134,8 +134,8 @@ def test_frame_data_structure():
 
 def test_pack_supported_formats():
     """测试 Pack Pipeline 支持的格式列表"""
-    from pipelines.run_04_pack.runner_v2 import PackPipeline
-    
+    from core_workshop.pipelines.run_04_pack.runner_v2 import PackPipeline
+
     expected_formats = ['ros', 'coco', 'yolo', 'custom', 'voc', 'kitti']
     
     for fmt in expected_formats:
@@ -147,14 +147,14 @@ def test_pack_supported_formats():
 
 def test_delivery_oss_config_loading():
     """测试 Delivery Pipeline OSS 配置加载"""
-    from pipelines.run_05_delivery.runner_v2 import DeliveryPipeline
+    from core_workshop.pipelines.run_05_delivery.runner_v2 import DeliveryPipeline
     import os
-    
+
     pipeline = DeliveryPipeline()
-    
+
     # 测试配置加载（即使没有环境变量也不应崩溃）
     oss_config = pipeline._load_oss_config()
-    
+
     assert isinstance(oss_config, dict)
     assert 'prefix' in oss_config  # 应该有默认值
     
@@ -163,12 +163,12 @@ def test_delivery_oss_config_loading():
 
 def test_calibrate_chessboard_validation():
     """测试 Calibrate Pipeline 棋盘格参数验证逻辑"""
-    from pipelines.run_03_calibrate.runner_v2 import CalibratePipeline
+    from core_workshop.pipelines.run_03_calibrate.runner_v2 import CalibratePipeline
     from common.core import InputValidator
-    
+
     validator = InputValidator()
     pipeline = CalibratePipeline(auto_load=False)
-    
+
     # 有效尺寸
     valid_sizes = [(9, 6), (11, 8), (7, 5)]
     for size in valid_sizes:
@@ -185,11 +185,11 @@ def test_calibrate_chessboard_validation():
 
 def test_enhance_confidence_validation():
     """测试 Enhance Pipeline 置信度阈值验证"""
-    from pipelines.run_02_enhance.runner_v2 import EnhancePipeline
+    from core_workshop.pipelines.run_02_enhance.runner_v2 import EnhancePipeline
     from common.core import InputValidator
-    
+
     validator = InputValidator()
-    
+
     # 有效置信度
     valid_values = [0.0, 0.25, 0.5, 1.0]
     for val in valid_values:
@@ -208,15 +208,15 @@ def test_enhance_confidence_validation():
 def test_all_pipelines_inherit_base():
     """测试所有 Pipeline 都正确继承 BasePipeline"""
     from common.core.base_pipeline import BasePipeline
-    
+
     pipeline_classes = [
-        ('EnhancePipeline', 'pipelines.run_02_enhance.runner_v2'),
-        ('CalibratePipeline', 'pipelines.run_03_calibrate.runner_v2'),
-        ('PackPipeline', 'pipelines.run_04_pack.runner_v2'),
-        ('DeliveryPipeline', 'pipelines.run_05_delivery.runner_v2'),
-        ('StreamingPipeline', 'pipelines.streaming.frame_pipeline_v2'),
+        ('EnhancePipeline', 'core_workshop.pipelines.run_02_enhance.runner_v2'),
+        ('CalibratePipeline', 'core_workshop.pipelines.run_03_calibrate.runner_v2'),
+        ('PackPipeline', 'core_workshop.pipelines.run_04_pack.runner_v2'),
+        ('DeliveryPipeline', 'core_workshop.pipelines.run_05_delivery.runner_v2'),
+        ('StreamingPipeline', 'core_workshop.pipelines.streaming.frame_pipeline_v2'),
     ]
-    
+
     for class_name, module_path in pipeline_classes:
         try:
             import importlib

@@ -1,6 +1,6 @@
 # Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
 """
-Workshop V3.0 - 企业级数据处理管道框架
+Core-Workshop V3.0 - 企业级数据处理管道框架
 ======================================
 
 基于 AgentOS 微内核架构和 Deepness 模式构建的高性能数据处理系统。
@@ -11,17 +11,17 @@ Workshop V3.0 - 企业级数据处理管道框架
     - services: 服务层 (gateway, monitor, exporter)
 
 主要模块:
-    - workshop.core.abstractions: 核心抽象基类
-    - workshop.core.services: 核心服务 (配置、日志、指标)
-    - workshop.core.security: 安全服务 (验证、审计)
-    - workshop.core.observability: 可观测性 (追踪、性能、健康)
-    - workshop.orchestration: 编排层
-    - workshop.services: API 网关、监控、导出
+    - core_workshop.core.abstractions: 核心抽象基类
+    - core_workshop.core.services: 核心服务 (配置、日志、指标)
+    - core_workshop.core.security: 安全服务 (验证、审计)
+    - core_workshop.core.observability: 可观测性 (追踪、性能、健康)
+    - core_workshop.orchestration: 编排层
+    - core_workshop.services: API 网关、监控、导出
 
 使用示例:
-    >>> from workshop.core.abstractions import BasePipeline
-    >>> from workshop.core.services import ConfigService
-    >>> from workshop.services import Gateway
+    >>> from core_workshop.core.abstractions import BasePipeline
+    >>> from core_workshop.core.services import ConfigService
+    >>> from core_workshop.services import Gateway
 
 版本信息:
     - 当前版本：3.0.0
@@ -37,7 +37,7 @@ __author__ = 'SPHARX DevTeam'
 __license__ = 'GPL-3.0'
 
 # V3.0 核心模块导入
-from workshop.core.abstractions import (
+from core_workshop.core.abstractions import (
     BasePipeline,
     PipelineResult,
     PipelineStatus,
@@ -54,30 +54,30 @@ from workshop.core.abstractions import (
     DataIOError,
 )
 
-from workshop.core.services import (
+from core_workshop.core.services import (
     ConfigService,
     LoggingService,
     MetricsService,
 )
 
-from workshop.core.security import (
+from core_workshop.core.security import (
     ValidationService,
     SecurityService,
 )
 
-from workshop.core.observability import (
+from core_workshop.core.observability import (
     TracingService,
     PerformanceMonitor,
     HealthService,
 )
 
-from workshop.orchestration import (
+from core_workshop.orchestration import (
     Scheduler,
     TaskQueue,
     WorkflowEngine,
 )
 
-from workshop.services import (
+from core_workshop.services import (
     Gateway,
     Monitor,
     Exporter,

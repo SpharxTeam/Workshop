@@ -97,7 +97,7 @@ graph LR
 
 ```
 Workshop/
-├── workshop/                      # ★ 核心代码包 V3.0
+├── core-workshop/                      # ★ 核心代码包 V3.0
 │   ├── __init__.py               # 包入口，导出公共 API
 │   ├── core/                     # 核心层
 │   │   ├── abstractions/         # 抽象基类 (BasePipeline, IStorageBackend)
@@ -108,16 +108,24 @@ Workshop/
 │   │   ├── scheduler.py          # 任务调度器
 │   │   ├── task_queue.py         # 任务队列
 │   │   └── workflow_engine.py    # 工作流引擎
-│   └── services/                 # 服务层
-│       ├── gateway.py            # API 网关
-│       ├── monitor.py            # 监控服务
-│       └── exporter.py           # 数据导出
+│   ├── services/                 # 服务层
+│   │   ├── gateway.py            # API 网关
+│   │   ├── monitor.py            # 监控服务
+│   │   └── exporter.py           # 数据导出
+│   └── pipelines/                # 数据处理管道
+│       ├── run_00_ingest/       # 数据导入
+│       ├── run_01_quality/      # 质量检测
+│       ├── run_02_enhance/      # 数据增强
+│       ├── run_03_calibrate/    # 相机校准
+│       ├── run_04_pack/          # 数据打包
+│       ├── run_05_delivery/     # 数据交付
+│       └── streaming/            # 流式处理
 │
 ├── commons/                      # 通用层
 │   ├── utils/                    # 工具函数
 │   │   ├── logging_utils.py      # 日志工具
 │   │   ├── decorators.py         # 装饰器 (retry, throttle, debounce)
-│   │   ├── data_utils.py         # 数据处理 (deep_merge, safe_get)
+│   │   ├── data_utils.py        # 数据处理 (deep_merge, safe_get)
 │   │   └── functional.py         # 函数式工具 (Singleton, Timer, RateLimiter)
 │   └── schemas/                  # 数据模式
 │       ├── dataset.py            # 数据集模式
@@ -128,15 +136,6 @@ Workshop/
 │   ├── configs/                  # 配置文件
 │   ├── dashboard/                # Web 监控仪表板
 │   └── scripts/                  # 兼容脚本
-│
-├── pipelines/                    # 数据处理管道
-│   ├── run_00_ingest/           # 数据导入
-│   ├── run_01_quality/          # 质量检测
-│   ├── run_02_enhance/          # 数据增强
-│   ├── run_03_calibrate/        # 相机校准
-│   ├── run_04_pack/             # 数据打包
-│   ├── run_05_delivery/         # 数据交付
-│   └── streaming/               # 流式处理
 │
 ├── hardware/                     # 硬件抽象层
 │   ├── hardware_abstraction.py   # DeviceManager
@@ -149,14 +148,14 @@ Workshop/
 │   └── framework/               # 测试框架
 │
 ├── scripts/                      # 运维工具
-│   ├── load_tester.py           # 负载测试
+│   ├── load_tester.py          # 负载测试
 │   ├── ops_toolkit.py           # 运维自动化
-│   └── quality_check.py         # 代码质量检查
+│   └── quality_check.py          # 代码质量检查
 │
 └── docs/                         # 技术文档
-    ├── API_REFERENCE.md         # API 参考
-    ├── DEVELOPER_GUIDE.md       # 开发者指南
-    └── PROJECT_STRUCTURE_V3.md  # 项目结构
+    ├── API_REFERENCE.md          # API 参考
+    ├── DEVELOPER_GUIDE.md        # 开发者指南
+    └── PROJECT_STRUCTURE_V3.md   # 项目结构
 ```
 
 ## 🚀 快速上手
@@ -192,13 +191,13 @@ docker-compose logs -f workshop-app
 
 ```python
 # V3.0 推荐导入方式
-from workshop import BasePipeline, ConfigService, LoggingService
-from workshop.core.abstractions import PipelineResult, PipelineStatus
-from workshop.core.services import ConfigService, LoggingService, MetricsService
-from workshop.core.security import ValidationService, SecurityService
-from workshop.core.observability import TracingService, PerformanceMonitor
-from workshop.orchestration import Scheduler, TaskQueue, WorkflowEngine
-from workshop.services import Gateway, Monitor, Exporter
+from core_workshop import BasePipeline, ConfigService, LoggingService
+from core_workshop.core.abstractions import PipelineResult, PipelineStatus
+from core_workshop.core.services import ConfigService, LoggingService, MetricsService
+from core_workshop.core.security import ValidationService, SecurityService
+from core_workshop.core.observability import TracingService, PerformanceMonitor
+from core_workshop.orchestration import Scheduler, TaskQueue, WorkflowEngine
+from core_workshop.services import Gateway, Monitor, Exporter
 from commons.utils import get_logger, deep_merge, retry
 from commons.schemas import DatasetSchema, SceneSchema
 
@@ -245,7 +244,7 @@ class MyPipeline(BasePipeline):
 ### ConfigService - 配置管理
 
 ```python
-from workshop.core.services import ConfigService
+from core_workshop.core.services import ConfigService
 
 config = ConfigService()
 

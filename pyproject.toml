@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "workshop"
+name = "core-workshop"
 version = "3.0.0"
 description = "企业级数据处理管道框架 V3.0 - 基于 AgentOS 和 Deepness 架构模式"
 readme = "README.md"
@@ -83,10 +83,10 @@ oss = [
     "oss2>=2.17.0",
 ]
 all = [
-    "workshop[dev]",
-    "workshop[hardware]",
-    "workshop[ml]",
-    "workshop[oss]",
+    "core-workshop[dev]",
+    "core-workshop[hardware]",
+    "core-workshop[ml]",
+    "core-workshop[oss]",
 ]
 
 [project.urls]
@@ -97,7 +97,7 @@ Issues = "https://atomgit.com/spharx/workshop/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["workshop*", "commons*", "common*"]
+include = ["core_workshop*", "commons*", "common*"]
 
 [tool.black]
 line-length = 100
@@ -170,7 +170,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["workshop", "commons"]
+source = ["core_workshop", "commons"]
 branch = true
 omit = [
     "*/tests/*",

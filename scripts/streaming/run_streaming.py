@@ -12,7 +12,7 @@ from ultralytics import YOLO
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from pipelines.streaming.frame_pipeline import PipelineOrchestrator
+from core_workshop.pipelines.streaming.frame_pipeline import PipelineOrchestrator
 
 # 配置日志格式（只配置一次）
 logging.basicConfig(
@@ -76,7 +76,7 @@ def main():
         logger.info(f"检测结果已保存 ({len(enhance_consumer.results)} 帧)")
 
         # 生成 COCO 标注
-        from pipelines.run_02_enhance.algorithm.yolo_detector import convert_to_coco
+        from core_workshop.pipelines.run_02_enhance.algorithm.yolo_detector import convert_to_coco
         coco_path = os.path.join(args.output, "annotations.json")
         convert_to_coco(enhance_consumer.results, model.names, coco_path)
         logger.info(f"COCO 标注已保存")

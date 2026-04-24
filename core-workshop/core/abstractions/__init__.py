@@ -11,24 +11,24 @@ Workshop Core - Abstractions
     - models: 数据模型和异常定义
 """
 
-from workshop.core.abstractions.pipeline import (
+from core_workshop.core.abstractions.pipeline import (
     BasePipeline,
     PipelineResult,
     PipelineStatus,
     PipelineContext,
 )
-from workshop.core.abstractions.storage import (
+from core_workshop.core.abstractions.storage import (
     IStorageBackend,
     LocalStorageBackend,
     FileMetadata,
     IOResult,
 )
-from workshop.core.abstractions.device import (
+from core_workshop.core.abstractions.device import (
     IHardwareDevice,
     DeviceInfo,
     DeviceStatus,
 )
-from workshop.core.abstractions.models import (
+from core_workshop.core.abstractions.models import (
     ErrorCode,
     ErrorSeverity,
     WorkshopError,

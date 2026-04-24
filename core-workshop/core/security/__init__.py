@@ -4,7 +4,7 @@ Workshop V3.0 安全服务层
 提供输入验证、安全审计、权限控制等安全相关功能。
 """
 
-from workshop.core.security.validation_service import (
+from core_workshop.core.security.validation_service import (
     ValidationService,
     ValidationResult,
     FieldValidator,
@@ -12,7 +12,7 @@ from workshop.core.security.validation_service import (
     PathValidator,
     FileValidator,
 )
-from workshop.core.security.security_service import (
+from core_workshop.core.security.security_service import (
     SecurityService,
     SecurityContext,
     SecurityAuditLog,

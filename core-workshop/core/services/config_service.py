@@ -20,7 +20,7 @@ import threading
 import logging
 from datetime import datetime
 
-from workshop.core.abstractions.models import (
+from core_workshop.core.abstractions.models import (
     ConfigurationError,
     ErrorCode,
 )

@@ -1,5 +1,5 @@
 """
-Workshop V3.0 模块导入验证测试
+Core-Workshop V3.0 模块导入验证测试
 
 验证所有新模块可以正确导入。
 """
@@ -13,7 +13,7 @@ class TestCoreAbstractionsImport:
     """核心抽象层导入测试"""
 
     def test_import_pipeline(self):
-        from workshop.core.abstractions.pipeline import (
+        from core_workshop.core.abstractions.pipeline import (
             BasePipeline,
             PipelineResult,
             PipelineStatus,
@@ -25,7 +25,7 @@ class TestCoreAbstractionsImport:
         assert PipelineContext is not None
 
     def test_import_storage(self):
-        from workshop.core.abstractions.storage import (
+        from core_workshop.core.abstractions.storage import (
             IStorageBackend,
             LocalStorageBackend,
             FileMetadata,
@@ -37,7 +37,7 @@ class TestCoreAbstractionsImport:
         assert IOResult is not None
 
     def test_import_device(self):
-        from workshop.core.abstractions.device import (
+        from core_workshop.core.abstractions.device import (
             IHardwareDevice,
             DeviceInfo,
             DeviceStatus,
@@ -47,7 +47,7 @@ class TestCoreAbstractionsImport:
         assert DeviceStatus is not None
 
     def test_import_models(self):
-        from workshop.core.abstractions.models import (
+        from core_workshop.core.abstractions.models import (
             ErrorCode,
             ErrorSeverity,
             WorkshopError,
@@ -62,7 +62,7 @@ class TestCoreAbstractionsImport:
         assert WorkshopError is not None
 
     def test_import_abstractions_init(self):
-        from workshop.core.abstractions import (
+        from core_workshop.core.abstractions import (
             BasePipeline,
             IStorageBackend,
             IHardwareDevice,
@@ -75,7 +75,7 @@ class TestCoreServicesImport:
     """核心服务层导入测试"""
 
     def test_import_config_service(self):
-        from workshop.core.services.config_service import (
+        from core_workshop.core.services.config_service import (
             ConfigService,
             ConfigLoader,
             ConfigValidator,
@@ -85,7 +85,7 @@ class TestCoreServicesImport:
         assert ConfigValidator is not None
 
     def test_import_logging_service(self):
-        from workshop.core.services.logging_service import (
+        from core_workshop.core.services.logging_service import (
             LoggingService,
             StructuredFormatter,
             SanitizingFilter,
@@ -95,7 +95,7 @@ class TestCoreServicesImport:
         assert SanitizingFilter is not None
 
     def test_import_metrics_service(self):
-        from workshop.core.services.metrics_service import (
+        from core_workshop.core.services.metrics_service import (
             MetricsService,
             MetricsCollector,
             MetricsRegistry,
@@ -105,7 +105,7 @@ class TestCoreServicesImport:
         assert MetricsRegistry is not None
 
     def test_import_services_init(self):
-        from workshop.core.services import (
+        from core_workshop.core.services import (
             ConfigService,
             LoggingService,
             MetricsService,
@@ -117,7 +117,7 @@ class TestCoreSecurityImport:
     """安全服务层导入测试"""
 
     def test_import_validation_service(self):
-        from workshop.core.security.validation_service import (
+        from core_workshop.core.security.validation_service import (
             ValidationService,
             ValidationResult,
             FieldValidator,
@@ -130,7 +130,7 @@ class TestCoreSecurityImport:
         assert FieldValidator is not None
 
     def test_import_security_service(self):
-        from workshop.core.security.security_service import (
+        from core_workshop.core.security.security_service import (
             SecurityService,
             SecurityContext,
             SecurityAuditLog,
@@ -143,7 +143,7 @@ class TestCoreSecurityImport:
         assert Permission is not None
 
     def test_import_security_init(self):
-        from workshop.core.security import (
+        from core_workshop.core.security import (
             ValidationService,
             SecurityService,
             Permission,
@@ -155,7 +155,7 @@ class TestCoreObservabilityImport:
     """可观测性层导入测试"""
 
     def test_import_tracing_service(self):
-        from workshop.core.observability.tracing_service import (
+        from core_workshop.core.observability.tracing_service import (
             TracingService,
             Span,
             SpanContext,
@@ -166,7 +166,7 @@ class TestCoreObservabilityImport:
         assert SpanContext is not None
 
     def test_import_performance(self):
-        from workshop.core.observability.performance import (
+        from core_workshop.core.observability.performance import (
             PerformanceMonitor,
             PerformanceMetric,
             PerformanceThreshold,
@@ -177,7 +177,7 @@ class TestCoreObservabilityImport:
         assert PerformanceThreshold is not None
 
     def test_import_health_service(self):
-        from workshop.core.observability.health_service import (
+        from core_workshop.core.observability.health_service import (
             HealthService,
             HealthStatus,
             HealthCheckResult,
@@ -188,7 +188,7 @@ class TestCoreObservabilityImport:
         assert HealthCheckResult is not None
 
     def test_import_observability_init(self):
-        from workshop.core.observability import (
+        from core_workshop.core.observability import (
             TracingService,
             PerformanceMonitor,
             HealthService,
@@ -257,7 +257,7 @@ class TestOrchestrationImport:
     """编排层导入测试"""
 
     def test_import_scheduler(self):
-        from workshop.orchestration.scheduler import (
+        from core_workshop.orchestration.scheduler import (
             Scheduler,
             ScheduledTask,
             ScheduleType,
@@ -268,7 +268,7 @@ class TestOrchestrationImport:
         assert ScheduleType is not None
 
     def test_import_task_queue(self):
-        from workshop.orchestration.task_queue import (
+        from core_workshop.orchestration.task_queue import (
             TaskQueue,
             Task,
             TaskStatus,
@@ -280,7 +280,7 @@ class TestOrchestrationImport:
         assert TaskStatus is not None
 
     def test_import_workflow_engine(self):
-        from workshop.orchestration.workflow_engine import (
+        from core_workshop.orchestration.workflow_engine import (
             WorkflowEngine,
             Workflow,
             WorkflowStep,
@@ -292,7 +292,7 @@ class TestOrchestrationImport:
         assert WorkflowStep is not None
 
     def test_import_orchestration_init(self):
-        from workshop.orchestration import (
+        from core_workshop.orchestration import (
             Scheduler,
             TaskQueue,
             WorkflowEngine,
@@ -304,7 +304,7 @@ class TestServicesImport:
     """服务层导入测试"""
 
     def test_import_gateway(self):
-        from workshop.services.gateway import (
+        from core_workshop.services.gateway import (
             Gateway,
             Route,
             RequestContext,
@@ -316,7 +316,7 @@ class TestServicesImport:
         assert Response is not None
 
     def test_import_monitor(self):
-        from workshop.services.monitor import (
+        from core_workshop.services.monitor import (
             Monitor,
             MonitorTarget,
             MonitorStatus,
@@ -327,7 +327,7 @@ class TestServicesImport:
         assert MonitorStatus is not None
 
     def test_import_exporter(self):
-        from workshop.services.exporter import (
+        from core_workshop.services.exporter import (
             Exporter,
             ExportConfig,
             ExportFormat,
@@ -338,7 +338,7 @@ class TestServicesImport:
         assert ExportFormat is not None
 
     def test_import_services_init(self):
-        from workshop.services import (
+        from core_workshop.services import (
             Gateway,
             Monitor,
             Exporter,
@@ -370,31 +370,31 @@ class TestSingletonPattern:
     """单例模式测试"""
 
     def test_config_service_singleton(self):
-        from workshop.core.services.config_service import ConfigService
+        from core_workshop.core.services.config_service import ConfigService
         s1 = ConfigService()
         s2 = ConfigService()
         assert s1 is s2
 
     def test_logging_service_singleton(self):
-        from workshop.core.services.logging_service import LoggingService
+        from core_workshop.core.services.logging_service import LoggingService
         s1 = LoggingService()
         s2 = LoggingService()
         assert s1 is s2
 
     def test_metrics_service_singleton(self):
-        from workshop.core.services.metrics_service import MetricsService
+        from core_workshop.core.services.metrics_service import MetricsService
         s1 = MetricsService()
         s2 = MetricsService()
         assert s1 is s2
 
     def test_security_service_singleton(self):
-        from workshop.core.security.security_service import SecurityService
+        from core_workshop.core.security.security_service import SecurityService
         s1 = SecurityService()
         s2 = SecurityService()
         assert s1 is s2
 
     def test_tracing_service_singleton(self):
-        from workshop.core.observability.tracing_service import TracingService
+        from core_workshop.core.observability.tracing_service import TracingService
         s1 = TracingService()
         s2 = TracingService()
         assert s1 is s2
@@ -404,7 +404,7 @@ class TestErrorCodeSystem:
     """错误码系统测试"""
 
     def test_error_code_values(self):
-        from workshop.core.abstractions.models import ErrorCode
+        from core_workshop.core.abstractions.models import ErrorCode
 
         assert ErrorCode.CONFIG_FILE_NOT_FOUND.value == 1001
         assert ErrorCode.PIPELINE_INIT_FAILED.value == 2001
@@ -413,7 +413,7 @@ class TestErrorCodeSystem:
         assert ErrorCode.IO_FILE_NOT_FOUND.value == 5001
 
     def test_error_severity(self):
-        from workshop.core.abstractions.models import ErrorSeverity
+        from core_workshop.core.abstractions.models import ErrorSeverity
 
         assert ErrorSeverity.LOW.value == 1
         assert ErrorSeverity.MEDIUM.value == 2
@@ -421,7 +421,7 @@ class TestErrorCodeSystem:
         assert ErrorSeverity.CRITICAL.value == 4
 
     def test_workshop_error(self):
-        from workshop.core.abstractions.models import (
+        from core_workshop.core.abstractions.models import (
             WorkshopError,
             ErrorCode,
             ErrorSeverity,
