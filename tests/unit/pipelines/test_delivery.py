@@ -14,10 +14,10 @@ def create_dummy_dataset(base_dir):
     (dataset_dir / "rgb/frame_000000.jpg").touch()
     return dataset_dir
 
-@patch('pipelines.delivery.algorithm.oss_uploader.upload_to_oss')
+@patch('core_workshop.pipelines.delivery.algorithm.oss_uploader.upload_to_oss')
 def test_upload_dataset_success(mock_upload, temp_output_dir):
     """测试数据集上传成功"""
-    from pipelines.delivery.algorithm.oss_uploader import upload_dataset
+    from core_workshop.pipelines.delivery.algorithm.oss_uploader import upload_dataset
     
     dataset_dir = create_dummy_dataset(temp_output_dir)
     oss_config = {
@@ -33,10 +33,10 @@ def test_upload_dataset_success(mock_upload, temp_output_dir):
     # 验证 upload_to_oss 被调用
     assert mock_upload.call_count > 0
 
-@patch('pipelines.delivery.algorithm.oss_uploader.upload_to_oss')
+@patch('core_workshop.pipelines.delivery.algorithm.oss_uploader.upload_to_oss')
 def test_upload_dataset_partial_failure(mock_upload, temp_output_dir):
     """测试部分文件上传失败"""
-    from pipelines.delivery.algorithm.oss_uploader import upload_dataset
+    from core_workshop.pipelines.delivery.algorithm.oss_uploader import upload_dataset
     
     dataset_dir = create_dummy_dataset(temp_output_dir)
     oss_config = {'endpoint': 'test', 'bucket': 'test'}
@@ -48,7 +48,7 @@ def test_upload_dataset_partial_failure(mock_upload, temp_output_dir):
 
 def test_upload_dataset_dir_not_exist(temp_output_dir):
     """测试数据集目录不存在"""
-    from pipelines.delivery.algorithm.oss_uploader import upload_dataset
+    from core_workshop.pipelines.delivery.algorithm.oss_uploader import upload_dataset
     
     result = upload_dataset("/nonexistent", {})
     assert result is False

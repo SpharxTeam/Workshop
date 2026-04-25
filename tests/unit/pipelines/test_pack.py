@@ -29,7 +29,7 @@ def create_scene_structure(base_dir, scene_id):
 
 def test_pack_scene_success(temp_output_dir):
     """测试打包成功"""
-    from pipelines.pack.algorithm.packer import pack_scene
+    from core_workshop.pipelines.pack.algorithm.packer import pack_scene
     
     scene_dir = create_scene_structure(temp_output_dir, "scene_001")
     output_dir = temp_output_dir / "dataset"
@@ -49,7 +49,7 @@ def test_pack_scene_success(temp_output_dir):
 
 def test_pack_scene_missing_required(temp_output_dir):
     """测试缺少必需文件的情况"""
-    from pipelines.pack.algorithm.packer import pack_scene
+    from core_workshop.pipelines.pack.algorithm.packer import pack_scene
     
     scene_dir = temp_output_dir / "scene_bad"
     scene_dir.mkdir()

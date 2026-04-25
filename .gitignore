@@ -4,15 +4,35 @@
 # ========================
 # Python cache
 # ========================
+
+.bendiwenjian/
 __pycache__/
 *.py[cod]
 *.so
 *.egg-info/
 dist/
+build/
 .pytest_cache/
 .coverage
 htmlcov/
 *.pyc
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# ========================
+# 包管理
+# ========================
+.venv/
+venv/
+env/
+ENV/
+pythonenv*
+*.whl
+
+# ========================
+# 数据目录（保留目录结构，忽略所有文件）
+# ========================
 
 # ========================
 # 数据目录（保留目录结构，忽略所有文件）
@@ -48,15 +68,11 @@ produce/output/datasets/*
 *.safetensors
 
 # ========================
-# 本地环境文件 
+# 本地环境文件
 # ========================
 .env
 .env.local
-.venv/
-venv/
-env/
-ENV/
-pythonenv*
+.env.*.local
 *.swp
 *.swo
 
@@ -130,3 +146,44 @@ docker-compose.override.yml
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# ========================
+# Workshop V2.0 特定规则
+# ========================
+
+# 质量报告和临时输出
+/reports/
+/quality_report.*
+/benchmark_report.*
+
+# Prometheus 数据
+/prometheus_data/
+
+# Grafana 配置（本地）
+/grafana-data/
+
+# Loki 日志数据
+/loki-data/
+
+# Docker 本地卷数据
+/docker-volumes/
+
+# 代码覆盖率详细报告
+coverage.xml
+*.cover
+.hypothesis/
+
+# Pre-commit 缓存
+.pre-commit-cache/
+
+# 文档构建输出
+/docs/build/
+/docs/_build/
+/sphinxdocs/_build/
+
+# Jupyter Notebook (如果使用)
+.ipynb_checkpoints/
+
+# 大型测试数据集（可选）
+/testdata/large_*.zip
+/testdata/sample_*.tar.gz

@@ -30,7 +30,7 @@ def mock_yolo(monkeypatch):
 
 def test_process_video_success(mock_yolo, sample_rgb_dir, temp_output_dir):
     """测试 process_video 正常处理图像目录"""
-    from pipelines.enhance.algorithm.yolo_detector import process_video
+    from core_workshop.pipelines.enhance.algorithm.yolo_detector import process_video
     
     # 准备场景目录
     scene_dir = temp_output_dir / "scene_test"
@@ -55,7 +55,7 @@ def test_process_video_success(mock_yolo, sample_rgb_dir, temp_output_dir):
 
 def test_process_video_no_images(temp_output_dir):
     """测试目录中没有图像的情况"""
-    from pipelines.enhance.algorithm.yolo_detector import process_video
+    from core_workshop.pipelines.enhance.algorithm.yolo_detector import process_video
     
     scene_dir = temp_output_dir / "scene_empty"
     scene_dir.mkdir()

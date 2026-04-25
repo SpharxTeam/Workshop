@@ -1,92 +1,278 @@
-# Copyright (c) 2026 SPHARX. All Rights Reserved. "From data intelligence emerges".
-# workshop 生产线 Makefile
-# 目标：自动化构建、测试、文档生成等
-# 用法：
-#   make all        # 构建所有（默认）
-#   make base       # 构建基础镜像
-#   make ingest     # 构建数据导入模块
-#   make quality    # 构建质检模块
-#   make enhance    # 构建增强模块
-#   make calibrate  # 构建标定模块
-#   make pack       # 构建打包模块
-#   make delivery   # 构建交付模块
-#   make test       # 运行单元测试
-#   make test-integration # 运行集成测试
-#   make test-all   # 运行所有测试
-#   make docs       # 构建 Sphinx 文档
-#   make clean      # 删除所有 workshop 镜像
-#   make clean-all  # 删除镜像并清理 Docker 构建缓存
+# Workshop V2.0 - 开发工具 Makefile
+# ================================
+#
+# 使用方法:
+#   make help        显示所有可用命令
+#   make install     安装项目
+#   make test        运行测试
+#   make lint        代码检查
+#   make format      自动格式化
+#   make quality     完整质量检查
 
-.PHONY: all base ingest quality enhance calibrate pack delivery \
-        test test-integration test-all docs clean clean-all
+.PHONY: help install install-dev test lint format quality clean build docs
 
-ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+# 默认目标
+.DEFAULT_GOAL := help
 
-# 默认目标：构建所有镜像
-all: base ingest quality enhance calibrate pack delivery
-	@echo "🎉 所有镜像构建完成！"
-	@docker images --filter=reference='workshop-*' --format="table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+help:
+	@echo "╔══════════════════════════════════════════════════╗"
+	@echo "║    Workshop V2.0 - 开发命令参考                  ║"
+	@echo "╠══════════════════════════════════════════════════╣"
+	@echo "║                                                  ║"
+	@echo "║  安装相关:                                       ║"
+	@echo "║    make install       安装核心依赖               ║"
+	@echo "║    make install-dev   安装完整开发环境           ║"
+	@echo "║    make install-ml    安装机器学习依赖           ║"
+	@echo "║                                                  ║"
+	@echo "║  代码质量:                                       ║"
+	@echo "║    make lint          运行 Linting (ruff)        ║"
+	@echo "║    make format        自动格式化 (black+isort)   ║"
+	@echo "║    make typecheck     类型检查 (mypy)            ║"
+	@echo "║    make security      安全扫描                   ║"
+	@echo "║    make quality       完整质量检查               ║"
+	@echo "║                                                  ║"
+	@echo "║  测试相关:                                       ║"
+	@echo "║    make test          运行单元测试               ║"
+	@echo "║    make test-all      运行完整测试套件           ║"
+	@echo "║    make test-cov      测试 + 覆盖率报告          ║"
+	@echo "║    make test-integ    集成测试                   ║"
+	@echo "║                                                  ║"
+	@echo "║  构建和部署:                                     ║"
+	@echo "║    make build         构建 Docker 镜像           ║"
+	@echo "║    make up            启动 Docker 服务           ║"
+	@echo "║    make down          停止 Docker 服务           ║"
+	@echo "║    make docs           构建文档                   ║"
+	@echo "║                                                  ║"
+	@echo "║  工具:                                           ║"
+	@echo "║    make clean         清理临时文件               ║"
+	@echo "║    make benchmark     性能基准测试                ║"
+	@echo "║    make load-test     负载测试                   ║"
+	@echo "║                                                  ║"
+	@echo "╚══════════════════════════════════════════════════╝"
 
-# 构建基础镜像
-base:
-	@echo "🔨 构建基础镜像 workshop-base ..."
-	@docker build --no-cache -t workshop-base -f base/Dockerfile .
+# ==============
+# 安装命令
+# ==============
 
-# 构建数据导入模块
-ingest: base
-	@echo "🔨 构建数据导入模块 workshop-ingest ..."
-	@docker build -t workshop-ingest -f pipelines/run_00_ingest/Dockerfile .
+install:
+	pip install -r requirements.txt
+	pip install -e .
 
-# 构建质检模块
-quality: base
-	@echo "🔨 构建质检模块 workshop-quality ..."
-	@docker build -t workshop-quality -f pipelines/run_01_quality/Dockerfile .
+install-dev:
+	pip install -r requirements.txt
+	pip install -e ".[dev]"
+	pre-commit install
 
-# 构建增强模块
-enhance: base
-	@echo "🔨 构建增强模块 workshop-enhance ..."
-	@docker build -t workshop-enhance -f pipelines/run_02_enhance/Dockerfile .
+install-ml:
+	pip install -e ".[ml]"
 
-# 构建标定模块
-calibrate: base
-	@echo "🔨 构建标定模块 workshop-calibrate ..."
-	@docker build -t workshop-calibrate -f pipelines/run_03_calibrate/Dockerfile .
+install-hardware:
+	pip install -e ".[hardware]"
 
-# 构建打包模块
-pack: base
-	@echo "🔨 构建打包模块 workshop-pack ..."
-	@docker build -t workshop-pack -f pipelines/run_04_pack/Dockerfile .
+install-all:
+	pip install -e ".[all]"
 
-# 构建交付模块
-delivery: base
-	@echo "🔨 构建交付模块 workshop-delivery ..."
-	@docker build -t workshop-delivery -f pipelines/run_05_delivery/Dockerfile .
+# ==============
+# 代码质量
+# ==============
 
-# 运行单元测试
+lint:
+	@echo "▶ Running Ruff Linting..."
+	ruff check .
+	@echo "✅ Linting passed!"
+
+format:
+	@echo "▶ Formatting code with Black..."
+	black .
+	@echo "▶ Sorting imports with isort..."
+	isort .
+	@echo "✅ Code formatted!"
+
+format-check:
+	@echo "▶ Checking formatting..."
+	black --check .
+	isort --check-only .
+
+typecheck:
+	@echo "▶ Running mypy type checking..."
+	mypy workshop/common/core/ --ignore-missing-imports
+	@echo "✅ Type checking passed!"
+
+security:
+	@echo "▶ Running security audit..."
+	python scripts/quality_check.py --skip-tests
+
+quality:
+	@echo "▶ Running full quality check..."
+	python scripts/quality_check.py
+
+quality-fix:
+	@echo "▶ Running quality check with auto-fix..."
+	python scripts/quality_check.py --fix
+
+# ==============
+# 测试命令
+# ==============
+
 test:
-	@echo "🧪 运行单元测试..."
-	@PYTHONPATH=$(ROOT_DIR) python -m pytest tests/unit -c tests/pytest.ini -v --cov=pipelines --cov-report=term-missing
+	@echo "▶ Running unit tests..."
+	pytest tests/unit/ -v
 
-# 运行集成测试
-test-integration:
-	@echo "🧪 运行集成测试..."
-	@PYTHONPATH=$(ROOT_DIR) python -m pytest tests/integration -c tests/pytest.ini -v
+test-all:
+	@echo "▶ Running all tests..."
+	pytest tests/ -v --cov=workshop --cov-report=term-missing
 
-# 运行所有测试
-test-all: test test-integration
+test-cov:
+	@echo "▶ Running tests with coverage report..."
+	pytest tests/ -v --cov=workshop --cov-report=html --cov-fail-under=80
+	@echo "📄 Coverage report: htmlcov/index.html"
 
-# 构建 Sphinx 文档
+test-integ:
+	@echo "▶ Running integration tests..."
+	pytest tests/integration/ -v
+
+test-parallel:
+	@echo "▶ Running tests in parallel..."
+	pytest tests/ -v -n auto
+
+test-fast:
+	@echo "▶ Running fast tests only..."
+	pytest tests/ -v -m "not slow" -x
+
+# ==============
+# 构建和部署
+# ==============
+
+build:
+	@echo "▶ Building Docker image..."
+	docker build -t workshop:latest .
+	@echo "✅ Build complete!"
+
+build-no-cache:
+	docker build --no-cache -t workshop:latest .
+
+up:
+	@echo "▶ Starting Docker services..."
+	docker-compose up -d
+	@echo "✅ Services started!"
+	@echo "📊 Dashboard: http://localhost:3000"
+	@echo "📈 Prometheus: http://localhost:9091"
+	@echo "📝 Logs: docker-compose logs -f workshop-app"
+
+down:
+	@echo "▶ Stopping Docker services..."
+	docker-compose down
+	@echo "✅ Services stopped!"
+
+restart:
+	docker-compose restart
+
+logs:
+	docker-compose logs -f workshop-app
+
+status:
+	docker-compose ps
+
+# ==============
+# 文档构建
+# ==============
+
 docs:
-	@echo "📖 构建文档..."
-	@cd docs && make html
-	@echo "文档已生成在 docs/build/html/index.html"
+	@echo "▶ Building documentation..."
+	cd docs && make html
+	@echo "📄 Documentation built: docs/build/html/index.html"
 
-# 删除所有 workshop 镜像
+docs-clean:
+	cd docs && make clean
+
+api-docs:
+	@echo "▶ Generating API documentation..."
+	pdoc workshop -o docs/api
+
+# ==============
+# 工具命令
+# ==============
+
 clean:
-	@echo "🧹 删除 workshop 相关镜像..."
-	@docker images -q --filter='reference=workshop-*' | xargs -r docker rmi -f
+	@echo "▶ Cleaning up..."
+	find . -type f -name "*.pyc" -delete
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	find . -type d -name ".mypy_cache" -exec rm -rf {} +
+	find . -type d -name ".ruff_cache" -exec rm -rf {} +
+	rm -rf build/ dist/ *.egg-info .coverage htmlcov/
+	rm -rf reports/ coverage.xml
+	@echo "✅ Clean complete!"
 
-# 删除镜像并清理构建缓存
-clean-all: clean
-	@echo "🧹 清理 Docker 构建缓存..."
-	@docker builder prune -a -f
+benchmark:
+	@echo "▶ Running performance benchmarks..."
+	python workshop/scripts/performance_benchmark_v1_vs_v2.py
+
+load-test:
+	@echo "▶ Starting load tester..."
+	python workshop/scripts/load_tester.py --full-suite
+
+ops-daily:
+	@echo "▶ Running daily maintenance..."
+	python workshop/scripts/ops_toolkit.py --daily-maintenance
+
+ops-health:
+	@echo "▶ Running health check..."
+	python workshop/scripts/ops_toolkit.py --health-check
+
+ops-backup:
+	@echo "▶ Creating backup..."
+	python workshop/scripts/ops_toolkit.py --backup --type full
+
+code-quality:
+	@echo "▶ Running code quality checker..."
+	python workshop/scripts/code_quality_checker.py workshop/common/core/
+
+# ==============
+# Git 辅助
+# ==============
+
+prepare-commit:
+	make format
+	make lint
+	test-fast
+
+pre-push:
+	make quality
+	test-all
+
+# ==============
+# 信息显示
+# ==============
+
+info:
+	@echo "╔═══════════════════════════════════════════╗"
+	@echo "║    Workshop V2.0 项目信息                 ║"
+	@echo "╠═══════════════════════════════════════════╣"
+	@echo "║  版本:     2.0.0                          ║"
+	@echo "║  Python:   ≥3.8                           ║"
+	@echo "║  许可证:   GPL-3.0                        ║"
+	@echo "║                                          ║"
+	@echo "║  核心模块:                                ║"
+	@echo "║    - BasePipeline (ABC)                   ║"
+	@echo "║    - ConfigManager                       ║"
+	@echo "║    - InputValidator                      ║"
+	@echo "║    - IOManager                           ║"
+	@echo "║    - WorkshopMetrics                     ║"
+	@echo "║    - BenchmarkSuite                      ║"
+	@echo "║    - CodeSecurityScanner                 ║"
+	@echo "║                                          ║"
+	@echo "║  Pipeline 模块:                          ║"
+	@echo "║    - Ingest / Quality / Enhance          ║"
+	@echo "║    - Calibrate / Pack / Delivery         ║"
+	@echo "║                                          ║"
+	@echo "║  文档:                                    ║"
+	@echo "║    - README.md                           ║"
+	@echo "║    - API_REFERENCE.md                    ║"
+	@echo "║    - DEVELOPER_GUIDE.md                  ║"
+	@echo "║    - CONTRIBUTING.md                     ║"
+	@echo "║    - CHANGELOG.md                        ║"
+	@echo "╚═══════════════════════════════════════════╝"
+
+version:
+	@python -c "from core_workshop import get_info; import json; print(json.dumps(get_info(), indent=2, ensure_ascii=False))"
