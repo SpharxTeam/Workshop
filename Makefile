@@ -95,7 +95,7 @@ format-check:
 
 typecheck:
 	@echo "▶ Running mypy type checking..."
-	mypy workshop/common/core/ --ignore-missing-imports
+	mypy core_workshop/core/ --ignore-missing-imports
 	@echo "✅ Type checking passed!"
 
 security:
@@ -120,11 +120,11 @@ test:
 
 test-all:
 	@echo "▶ Running all tests..."
-	pytest tests/ -v --cov=workshop --cov-report=term-missing
+	pytest tests/ -v --cov=core_workshop --cov-report=term-missing
 
 test-cov:
 	@echo "▶ Running tests with coverage report..."
-	pytest tests/ -v --cov=workshop --cov-report=html --cov-fail-under=80
+	pytest tests/ -v --cov=core_workshop --cov-report=html --cov-fail-under=80
 	@echo "📄 Coverage report: htmlcov/index.html"
 
 test-integ:
@@ -187,7 +187,7 @@ docs-clean:
 
 api-docs:
 	@echo "▶ Generating API documentation..."
-	pdoc workshop -o docs/api
+	pdoc core_workshop -o docs/api
 
 # ==============
 # 工具命令
@@ -206,27 +206,27 @@ clean:
 
 benchmark:
 	@echo "▶ Running performance benchmarks..."
-	python workshop/scripts/performance_benchmark_v1_vs_v2.py
+	python scripts/performance_benchmark_v1_vs_v2.py
 
 load-test:
 	@echo "▶ Starting load tester..."
-	python workshop/scripts/load_tester.py --full-suite
+	python scripts/load_tester.py --full-suite
 
 ops-daily:
 	@echo "▶ Running daily maintenance..."
-	python workshop/scripts/ops_toolkit.py --daily-maintenance
+	python scripts/ops_toolkit.py --daily-maintenance
 
 ops-health:
 	@echo "▶ Running health check..."
-	python workshop/scripts/ops_toolkit.py --health-check
+	python scripts/ops_toolkit.py --health-check
 
 ops-backup:
 	@echo "▶ Creating backup..."
-	python workshop/scripts/ops_toolkit.py --backup --type full
+	python scripts/ops_toolkit.py --backup --type full
 
 code-quality:
 	@echo "▶ Running code quality checker..."
-	python workshop/scripts/code_quality_checker.py workshop/common/core/
+	python scripts/code_quality_checker.py core_workshop/core/
 
 # ==============
 # Git 辅助

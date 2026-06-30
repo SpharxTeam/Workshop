@@ -3,6 +3,7 @@
 # 使用 BasePipeline 基类重构，增强线程安全、错误处理和可观测性
 
 import sys
+import logging
 import queue
 import threading
 import time
@@ -11,17 +12,15 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-sys.path.insert(0, '/app/common/scripts')
-
-from common.core import (
+from core_workshop.core.abstractions import (
     BasePipeline,
     PipelineResult,
-    ConfigManager,
-    setup_logging,
-    InputValidator,
     ErrorCode,
-    PipelineError,
-    WorkshopError
+)
+from core_workshop.core.services.logging_service import setup_logging, get_logger
+from core_workshop.pipelines._validation_helpers import (
+    validate_path_exists_dir,
+    collect_errors,
 )
 
 
@@ -54,7 +53,7 @@ class BaseConsumer(ABC):
         self._processed_count = 0
         self._results: List[Any] = []
         self._exception: Optional[Exception] = None
-        self._logger = setup_logging(f"streaming.consumer.{name}")
+        self._logger = get_logger(f"streaming.consumer.{name}")
         
         # 性能统计
         self._start_time: Optional[float] = None
@@ -258,21 +257,17 @@ class StreamingPipeline(BasePipeline):
         Returns:
             PipelineResult: 包含所有消费者结果的字典
         """
-        validator = InputValidator()
-        
         # 验证源目录
         source_dir = kwargs.get('source_dir') or input_data or self._source_dir
-        
-        path_validation = validator.validate_path(
-            source_dir,
-            must_exist=True,
-            should_be_dir=True,
-            name='source_dir'
+
+        errors = collect_errors(
+            validate_path_exists_dir(source_dir, 'source_dir'),
         )
-        if not path_validation.valid:
+
+        if errors:
             return PipelineResult(
                 success=False,
-                error='\n'.join(path_validation.errors),
+                error='\n'.join(errors),
                 error_code=ErrorCode.VALIDATION_FAILED
             )
         
@@ -630,7 +625,8 @@ def main():
     parser.add_argument("--config", help="配置文件路径")
     args = parser.parse_args()
     
-    logger = setup_logging("streaming")
+    setup_logging(level="INFO")
+    logger = get_logger("streaming")
     logger.info(f"Streaming Pipeline v{StreamingPipeline.VERSION} 启动")
     
     pipeline = StreamingPipeline(source_dir=args.input, config_path=args.config)

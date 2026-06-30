@@ -5,18 +5,18 @@
 import sys
 from typing import Any, Dict, Optional
 
-# 添加父目录到路径（向后兼容）
-sys.path.insert(0, '/app/common/scripts')
-
-from common.core import (
+from core_workshop.core.abstractions import (
     BasePipeline,
     PipelineResult,
-    ConfigManager,
-    setup_logging,
-    get_logger,
-    InputValidator,
+    ErrorCode,
+    PipelineError,
     ValidationError,
-    ErrorCode
+)
+from core_workshop.core.services.logging_service import setup_logging, get_logger
+from core_workshop.pipelines._validation_helpers import (
+    validate_file_readable,
+    validate_directory_writable,
+    collect_errors,
 )
 
 
@@ -64,7 +64,11 @@ class IngestPipeline(BasePipeline):
             self._logger.debug("算法模块加载成功")
             
         except ImportError as e:
-            raise ErrorCode.MODULE_LOAD_FAILED(f"无法加载算法模块: {e}")
+            raise PipelineError(
+                ErrorCode.MODULE_LOAD_FAILED,
+                f"无法加载算法模块: {e}",
+                cause=e,
+            )
     
     def _execute(self, input_data: Any = None, **kwargs) -> PipelineResult:
         """
@@ -76,22 +80,20 @@ class IngestPipeline(BasePipeline):
         Returns:
             PipelineResult: 执行结果
         """
-        validator = InputValidator()
-        
         # 获取输入输出路径
         input_path = kwargs.get('input') or self.config.get('input')
         output_dir = kwargs.get('output') or self.config.get('output')
-        
+
         # 验证输入参数
-        validation = validator.validate_all([
-            (validator.validate_file_readable, (input_path,), {'name': 'input'}),
-            (validator.validate_directory_writable, (output_dir,), {'name': 'output'})
-        ])
-        
-        if not validation.valid:
+        errors = collect_errors(
+            validate_file_readable(input_path, 'input'),
+            validate_directory_writable(output_dir, 'output'),
+        )
+
+        if errors:
             return PipelineResult(
                 success=False,
-                error='\n'.join(validation.errors),
+                error='\n'.join(errors),
                 error_code=ErrorCode.VALIDATION_FAILED
             )
         
@@ -180,7 +182,8 @@ def main():
     args = parser.parse_args()
     
     # 设置日志
-    logger = setup_logging("00_ingest")
+    setup_logging(level="INFO")
+    logger = get_logger("00_ingest")
     logger.info(f"Ingest Pipeline v{IngestPipeline.VERSION} 启动")
     logger.info(f"Python 版本: {sys.version}")
     

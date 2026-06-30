@@ -6,17 +6,17 @@ import sys
 import os
 from typing import Any, Dict, Optional, List
 
-sys.path.insert(0, '/app/common/scripts')
-
-from common.core import (
+from core_workshop.core.abstractions import (
     BasePipeline,
     PipelineResult,
-    ConfigManager,
-    setup_logging,
-    InputValidator,
     ErrorCode,
     PipelineError,
-    ConfigurationError
+    ConfigurationError,
+)
+from core_workshop.core.services.logging_service import setup_logging, get_logger
+from core_workshop.pipelines._validation_helpers import (
+    validate_path_exists_dir,
+    collect_errors,
 )
 
 
@@ -93,23 +93,19 @@ class DeliveryPipeline(BasePipeline):
         Returns:
             PipelineResult: 交付结果
         """
-        validator = InputValidator()
-        
         # 获取参数
         dataset_dir = kwargs.get('input') or input_data or self.config.get('dataset_dir')
         dry_run = kwargs.get('dry_run', False) or self.config.get('dry_run', default=False)
-        
+
         # 验证输入目录存在
-        path_validation = validator.validate_path(
-            dataset_dir,
-            must_exist=True,
-            should_be_dir=True,
-            name='dataset_dir'
+        errors = collect_errors(
+            validate_path_exists_dir(dataset_dir, 'dataset_dir'),
         )
-        if not path_validation.valid:
+
+        if errors:
             return PipelineResult(
                 success=False,
-                error='\n'.join(path_validation.errors),
+                error='\n'.join(errors),
                 error_code=ErrorCode.VALIDATION_FAILED
             )
         
@@ -297,7 +293,8 @@ def main():
     args = parser.parse_args()
     
     # 设置日志
-    logger = setup_logging("05_delivery")
+    setup_logging(level="INFO")
+    logger = get_logger("05_delivery")
     logger.info(f"Delivery Pipeline v{DeliveryPipeline.VERSION} 启动")
     
     # 创建并运行 Pipeline

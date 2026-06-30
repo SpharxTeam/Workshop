@@ -7,16 +7,17 @@ import json
 from typing import Any, Dict, Optional, List
 from pathlib import Path
 
-sys.path.insert(0, '/app/common/scripts')
-
-from common.core import (
+from core_workshop.core.abstractions import (
     BasePipeline,
     PipelineResult,
-    ConfigManager,
-    setup_logging,
-    InputValidator,
     ErrorCode,
-    PipelineError
+    PipelineError,
+)
+from core_workshop.core.services.logging_service import setup_logging, get_logger
+from core_workshop.pipelines._validation_helpers import (
+    validate_path_exists_dir,
+    validate_directory_writable,
+    collect_errors,
 )
 
 
@@ -62,7 +63,7 @@ class PackPipeline(BasePipeline):
         
         try:
             from algorithm.packer import pack_scene
-            from common.schemas.dataset import DatasetSchema
+            from commons.schemas import DatasetSchema
             
             self._pack_scene = pack_scene
             self._schema_validator = DatasetSchema()
@@ -88,32 +89,19 @@ class PackPipeline(BasePipeline):
         Returns:
             PipelineResult: 打包结果
         """
-        validator = InputValidator()
-        
         # 获取参数
         scene_dir = kwargs.get('input') or input_data or self.config.get('scene_dir')
         output_dir = kwargs.get('output') or self.config.get('output_dir')
         
-        # 验证输入目录存在且可读
-        path_validation = validator.validate_path(
-            scene_dir,
-            must_exist=True,
-            should_be_dir=True,
-            name='scene_dir'
+        # 验证输入目录存在且可读 + 输出目录可写
+        errors = collect_errors(
+            validate_path_exists_dir(scene_dir, 'scene_dir'),
+            validate_directory_writable(output_dir, 'output_dir'),
         )
-        if not path_validation.valid:
+        if errors:
             return PipelineResult(
                 success=False,
-                error='\n'.join(path_validation.errors),
-                error_code=ErrorCode.VALIDATION_FAILED
-            )
-        
-        # 验证输出目录可写
-        out_validation = validator.validate_directory_writable(output_dir, name='output_dir')
-        if not out_validation.valid:
-            return PipelineResult(
-                success=False,
-                error='\n'.join(out_validation.errors),
+                error='\n'.join(errors),
                 error_code=ErrorCode.VALIDATION_FAILED
             )
         
@@ -306,7 +294,8 @@ def main():
     args = parser.parse_args()
     
     # 设置日志
-    logger = setup_logging("04_pack")
+    setup_logging(level="INFO")
+    logger = get_logger("04_pack")
     logger.info(f"Pack Pipeline v{PackPipeline.VERSION} 启动")
     
     # 创建并运行 Pipeline

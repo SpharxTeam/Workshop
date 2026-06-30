@@ -67,6 +67,7 @@ class PerformanceThreshold:
     critical_threshold: Optional[float] = None
     comparison: str = "greater"
     enabled: bool = True
+    unit: Optional[str] = None
 
     def check(self, value: float) -> Optional[AlertSeverity]:
         if not self.enabled:

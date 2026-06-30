@@ -5,16 +5,18 @@
 import sys
 from typing import Any, Dict, Optional, List
 
-sys.path.insert(0, '/app/common/scripts')
-
-from common.core import (
+from core_workshop.core.abstractions import (
     BasePipeline,
     PipelineResult,
-    ConfigManager,
-    setup_logging,
-    InputValidator,
     ErrorCode,
-    PipelineError
+    PipelineError,
+)
+from core_workshop.core.services.logging_service import setup_logging, get_logger
+from core_workshop.pipelines._validation_helpers import (
+    validate_path_exists_dir,
+    validate_directory_writable,
+    validate_range,
+    collect_errors,
 )
 
 
@@ -123,28 +125,19 @@ class EnhancePipeline(BasePipeline):
         Returns:
             PipelineResult: 处理结果
         """
-        validator = InputValidator()
-        
         # 获取参数
         scene_dir = kwargs.get('input') or input_data or self.config.get('scene_dir')
         output_dir = kwargs.get('output') or self.config.get('output_dir')
         
         # 验证输入输出路径
-        validation = validator.validate_all([
-            (validator.validate_path, (scene_dir,), {
-                'must_exist': True,
-                'should_be_dir': True,
-                'name': 'scene_dir'
-            }),
-            (validator.validate_directory_writable, (output_dir,), {
-                'name': 'output_dir'
-            })
-        ])
-        
-        if not validation.valid:
+        errors = collect_errors(
+            validate_path_exists_dir(scene_dir, 'scene_dir'),
+            validate_directory_writable(output_dir, 'output_dir'),
+        )
+        if errors:
             return PipelineResult(
                 success=False,
-                error='\n'.join(validation.errors),
+                error='\n'.join(errors),
                 error_code=ErrorCode.VALIDATION_FAILED
             )
         
@@ -154,16 +147,13 @@ class EnhancePipeline(BasePipeline):
         )
         
         # 验证置信度阈值范围
-        conf_validation = validator.validate_range(
-            conf_threshold,
-            min_val=0.0,
-            max_val=1.0,
-            name='conf_threshold'
+        conf_errors = collect_errors(
+            validate_range(conf_threshold, 0.0, 1.0, 'conf_threshold'),
         )
-        if not conf_validation.valid:
+        if conf_errors:
             return PipelineResult(
                 success=False,
-                error='\n'.join(conf_validation.errors),
+                error='\n'.join(conf_errors),
                 error_code=ErrorCode.VALIDATION_FAILED
             )
         
@@ -286,7 +276,8 @@ def main():
     args = parser.parse_args()
     
     # 设置日志
-    logger = setup_logging("02_enhance")
+    setup_logging(level="INFO")
+    logger = get_logger("02_enhance")
     logger.info(f"Enhance Pipeline v{EnhancePipeline.VERSION} 启动")
     
     # 创建并运行 Pipeline

@@ -1,25 +1,16 @@
 """
-Workshop V3.0 向后兼容层
-
-提供 V2.0 到 V3.0 的导入重定向。
-"""
-
-import warnings
-
-warnings.warn(
-    "从 'common' 导入已废弃，请使用新的模块结构代替",
-    DeprecationWarning,
-    stacklevel=2,
-)
-
-from common.core import *
-from common.configs import *
-from common.scripts import *
-from common.schemas import *
-"""
 Workshop V3.0 通用层
+====================
 
 提供通用工具、数据模式、配置管理等功能。
+
+子模块:
+    - utils: 日志、计时器、单例、装饰器、数据工具
+    - schemas: 数据模式（BaseSchema / DatasetSchema / SceneSchema / SensorStreamSchema）
+    - configs: YAML 配置加载
+    - scripts: 数据 IO、配置加载脚本
+    - dashboard: Streamlit 可视化应用
+    - core: V2→V3 兼容 shim（保留供 V2 代码导入过渡）
 """
 
 from commons.utils import (
@@ -44,6 +35,7 @@ from commons.schemas import (
 )
 
 __all__ = [
+    # utils
     "get_logger",
     "setup_logging",
     "Timer",
@@ -55,6 +47,7 @@ __all__ = [
     "flatten_dict",
     "safe_get",
     "safe_set",
+    # schemas
     "BaseSchema",
     "DatasetSchema",
     "SceneSchema",

@@ -33,7 +33,7 @@ def generate_chessboard_images(tmp_path, count=10, pattern=(9,6), square_size=10
 
 def test_calibrate_camera_success(temp_output_dir):
     """测试标定成功"""
-    from core_workshop.pipelines.calibrate.algorithm.camera_calibrator import calibrate_camera
+    from core_workshop.pipelines.run_03_calibrate.algorithm.camera_calibrator import calibrate_camera
     
     # 生成测试图像
     img_dir = generate_chessboard_images(temp_output_dir, count=15)
@@ -56,7 +56,7 @@ def test_calibrate_camera_success(temp_output_dir):
 
 def test_calibrate_camera_no_images(temp_output_dir):
     """测试没有图像的情况"""
-    from core_workshop.pipelines.calibrate.algorithm.camera_calibrator import calibrate_camera
+    from core_workshop.pipelines.run_03_calibrate.algorithm.camera_calibrator import calibrate_camera
     
     empty_dir = temp_output_dir / "empty"
     empty_dir.mkdir()

@@ -17,8 +17,8 @@ from core_workshop.core.services.config_service import (
 )
 from core_workshop.core.services.logging_service import (
     LoggingService,
-    LogFormatter,
-    LogHandler,
+    StructuredFormatter,
+    SanitizingFilter,
 )
 from core_workshop.core.services.metrics_service import (
     MetricsService,
@@ -33,8 +33,8 @@ __all__ = [
     'ConfigValidator',
     # Logging
     'LoggingService',
-    'LogFormatter',
-    'LogHandler',
+    'StructuredFormatter',
+    'SanitizingFilter',
     # Metrics
     'MetricsService',
     'MetricsCollector',

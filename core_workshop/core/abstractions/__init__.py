@@ -16,6 +16,7 @@ from core_workshop.core.abstractions.pipeline import (
     PipelineResult,
     PipelineStatus,
     PipelineContext,
+    PipelineConfig,
 )
 from core_workshop.core.abstractions.storage import (
     IStorageBackend,
@@ -37,6 +38,7 @@ from core_workshop.core.abstractions.models import (
     ValidationError,
     HardwareError,
     DataIOError,
+    error_code_manager,
 )
 
 __all__ = [
@@ -45,6 +47,7 @@ __all__ = [
     'PipelineResult',
     'PipelineStatus',
     'PipelineContext',
+    'PipelineConfig',
     # Storage
     'IStorageBackend',
     'LocalStorageBackend',

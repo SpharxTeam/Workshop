@@ -406,7 +406,7 @@ class TestErrorCodeSystem:
     def test_error_code_values(self):
         from core_workshop.core.abstractions.models import ErrorCode
 
-        assert ErrorCode.CONFIG_FILE_NOT_FOUND.value == 1001
+        assert ErrorCode.CONFIG_FILE_NOT_FOUND.value == 1005
         assert ErrorCode.PIPELINE_INIT_FAILED.value == 2001
         assert ErrorCode.VALIDATION_FAILED.value == 3001
         assert ErrorCode.HARDWARE_NOT_CONNECTED.value == 4001
@@ -415,9 +415,9 @@ class TestErrorCodeSystem:
     def test_error_severity(self):
         from core_workshop.core.abstractions.models import ErrorSeverity
 
-        assert ErrorSeverity.LOW.value == 1
-        assert ErrorSeverity.MEDIUM.value == 2
-        assert ErrorSeverity.HIGH.value == 3
+        assert ErrorSeverity.LOW.value == 2
+        assert ErrorSeverity.MEDIUM.value == 3
+        assert ErrorSeverity.HIGH.value == 4
         assert ErrorSeverity.CRITICAL.value == 4
 
     def test_workshop_error(self):

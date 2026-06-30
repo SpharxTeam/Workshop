@@ -6,17 +6,19 @@ import sys
 import os
 from typing import Any, Dict, Optional, Tuple
 
-sys.path.insert(0, '/app/common/scripts')
-
-from common.core import (
+from core_workshop.core.abstractions import (
     BasePipeline,
     PipelineResult,
-    ConfigManager,
-    setup_logging,
-    InputValidator,
     ErrorCode,
     PipelineError,
-    HardwareError
+    HardwareError,
+)
+from core_workshop.core.services.logging_service import setup_logging, get_logger
+from core_workshop.pipelines._validation_helpers import (
+    validate_path_exists_dir,
+    validate_directory_writable,
+    validate_range,
+    collect_errors,
 )
 
 
@@ -82,32 +84,19 @@ class CalibratePipeline(BasePipeline):
         Returns:
             PipelineResult: 标定结果
         """
-        validator = InputValidator()
-        
         # 获取参数
         calib_images_dir = kwargs.get('input') or input_data or self.config.get('calib_images_dir')
         output_dir = kwargs.get('output') or self.config.get('output_dir')
         
-        # 验证输入目录存在且可读
-        path_validation = validator.validate_path(
-            calib_images_dir,
-            must_exist=True,
-            should_be_dir=True,
-            name='calib_images_dir'
+        # 验证输入目录存在且可读 + 输出目录可写
+        errors = collect_errors(
+            validate_path_exists_dir(calib_images_dir, 'calib_images_dir'),
+            validate_directory_writable(output_dir, 'output_dir'),
         )
-        if not path_validation.valid:
+        if errors:
             return PipelineResult(
                 success=False,
-                error='\n'.join(path_validation.errors),
-                error_code=ErrorCode.VALIDATION_FAILED
-            )
-        
-        # 验证输出目录可写
-        out_validation = validator.validate_directory_writable(output_dir, name='output_dir')
-        if not out_validation.valid:
-            return PipelineResult(
-                success=False,
-                error='\n'.join(out_validation.errors),
+                error='\n'.join(errors),
                 error_code=ErrorCode.VALIDATION_FAILED
             )
         
@@ -136,16 +125,13 @@ class CalibratePipeline(BasePipeline):
             )
         
         for dim, name in zip(chessboard, ['columns', 'rows']):
-            range_check = validator.validate_range(
-                dim,
-                min_val=3,
-                max_val=20,
-                name=f'chessboard_{name}'
+            range_errors = collect_errors(
+                validate_range(dim, 3, 20, f'chessboard_{name}'),
             )
-            if not range_check.valid:
+            if range_errors:
                 return PipelineResult(
                     success=False,
-                    error='\n'.join(range_check.errors),
+                    error='\n'.join(range_errors),
                     error_code=ErrorCode.VALUE_OUT_OF_RANGE
                 )
         
@@ -154,16 +140,13 @@ class CalibratePipeline(BasePipeline):
             'square_size', default=0.025
         )
         
-        size_validation = validator.validate_range(
-            square_size,
-            min_val=0.001,
-            max_val=1.0,
-            name='square_size'
+        size_errors = collect_errors(
+            validate_range(square_size, 0.001, 1.0, 'square_size'),
         )
-        if not size_validation.valid:
+        if size_errors:
             return PipelineResult(
                 success=False,
-                error='\n'.join(size_validation.errors),
+                error='\n'.join(size_errors),
                 error_code=ErrorCode.VALUE_OUT_OF_RANGE
             )
         
@@ -326,7 +309,8 @@ def main():
     args = parser.parse_args()
     
     # 设置日志
-    logger = setup_logging("03_calibrate")
+    setup_logging(level="INFO")
+    logger = get_logger("03_calibrate")
     logger.info(f"Calibrate Pipeline v{CalibratePipeline.VERSION} 启动")
     
     # 创建并运行 Pipeline

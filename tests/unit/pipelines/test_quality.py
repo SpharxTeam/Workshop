@@ -7,7 +7,7 @@ from pathlib import Path
 
 def test_generate_quality_report(sample_rgb_dir, sample_timestamps, temp_output_dir):
     """测试质检报告生成"""
-    from core_workshop.pipelines.quality.algorithm.quality_analyzer import generate_quality_report
+    from core_workshop.pipelines.run_01_quality.algorithm.quality_analyzer import generate_quality_report
     
     # 模拟场景目录
     scene_dir = temp_output_dir / "scene_test"
